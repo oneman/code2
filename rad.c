@@ -18,7 +18,7 @@ int radical(int n) {
 int main() {
   int n = 1;
   int nr = 0;
-  for (;n<4294967295;n++) {
+  for (;n<294967294;n++) {
     if (n == radical(n)) continue;
     printf("#%d rad(%d) = %d\n", ++nr, n, radical(n));
   }
