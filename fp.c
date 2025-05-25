@@ -2,8 +2,6 @@
 #include <gmp.h>
 #include <cairo.h>
 #include <pipewire/pipewire.h>
-
-/* ok ok ok */
 #include <sys/types.h>
 typedef float f32;
 typedef double f64;
@@ -17,22 +15,12 @@ typedef int32_t i32;
 typedef int64_t i64;
 typedef size_t usize;
 typedef ssize_t isize;
-
 typedef struct {
   uint8_t r;
   uint8_t g;
   uint8_t b;
   uint8_t a;
 } rgba32;
-
-static char *letter_color[26] = {
-  "amethyst", "blue", "caramel", "damnson", "ebony",
-  "forest", "green", "honey", "iron", "jade",
-  "khaki", "lime", "mellow", "navy", "orly",
-  "pink", "quagmire", "red", "sky", "turquoise",
-  "uranium", "version", "wine", "xanthin", "yellow",
-  "zorange"
-};
 
 typedef enum {
   amethyst, blue, caramel, damnson, ebony,
@@ -43,6 +31,15 @@ typedef enum {
   zorange
 } ncolor;
 
+static char *colorname[26] = {
+  "amethyst", "blue", "caramel", "damnson", "ebony",
+  "forest", "green", "honey", "iron", "jade",
+  "khaki", "lime", "mellow", "navy", "orly",
+  "pink", "quagmire", "red", "sky", "turquoise",
+  "uranium", "version", "wine", "xanthin", "yellow",
+  "zorange"
+};
+
 static const rgba32 colors26[26] = {
   {241,163,255}, {0,116,255}, {155,64,0}, {76,0,92}, {26,26,26},
   {0,92,48}, {42,207,72}, {255,205,153}, {126,126,126}, {149,255,181},
@@ -52,21 +49,12 @@ static const rgba32 colors26[26] = {
   {255,80,0}
 };
 
-#define CACHELINE_SZ 64
-#define PAGE_SZ 4096
-#define COMPUTER_SCREEN_WIDTH 1920
-#define COMPUTER_SCREEN_HEIGHT 1080
-#define COMPUTER_SCREEN_STRIDE COMPUTER_SCREEN_WIDTH * 4
-#define COMPUTER_SCREEN_PIXELS COMPUTER_SCREEN_WIDTH * COMPUTER_SCREEN_HEIGHT
+#define BIG_SZ 4210 * 2976 * 16
 
 typedef struct {
-  rgba32 *src;
-  int w;
-  int h;
-  int pr[PAGE_SZ * PAGE_SZ];
   int nr;
   int nrj;
-  rgba32 ds[COMPUTER_SCREEN_WIDTH * COMPUTER_SCREEN_HEIGHT];
+  int pr[BIG_SZ];
 } pxcop;
 
 int pixel_region_count(pxcop *pc) {
@@ -93,7 +81,6 @@ int pixel_region_join(pxcop *pc, int r, int x, int y, int w) {
   if ((old_r) && (old_r != r)) {
     pc->nrj++;
     int start = 0;
-    //if (y > 1) start = (y - 1) * w;
     for (int i = start; i < n; i++) {
       if (pc->pr[i] == old_r) {
         pc->pr[i] = r;
@@ -114,22 +101,9 @@ int px_scan(pxcop *pc, rgba32 *px, int w, int h) {
   int y;
   int r;
   u64 np = w * h;
-  pc->w = w;
-  pc->h = h;
-  pc->src = px;
   printf("Area: %dx%d\n", w, h);
-  printf("Pixels: %lu\n",  np);
-  if (np > COMPUTER_SCREEN_PIXELS) {
-    printf("So Many pixels!\n");
-    return 0;
-  }
-  /*
-  printf("4x Cell: %lu\n",  np / (4 * 4));
-  printf("8x Cell: %lu\n",  np / (8 * 8));
-  printf("16x Cell: %lu\n",  np / (16 * 16));
-  printf("32x Cell: %lu\n",  np / (32 * 32));
-  printf("64x Cell: %lu\n",  np / (64 * 64));
-  */
+  printf("Pixels: %lu MAX: %d \n", np, BIG_SZ);
+  if (np > BIG_SZ) { printf("So Many pixels!\n"); return 1; }
   for (y = 0; y < h; y++) {
     for (x = 0; x < w; x++) {
       rgba32 *upleft = NULL;
@@ -167,18 +141,14 @@ int px_scan(pxcop *pc, rgba32 *px, int w, int h) {
   return pixel_region_count(pc);
 }
 
-/* ko ko ko */
 int main(int argc, char *argv[]) {
-  pw_init(&argc, &argv);
-  fprintf(stdout, "Compiled with libpipewire %s\n"
-                  "Linked with libpipewire %s\n",
-                   pw_get_headers_version(),
-                   pw_get_library_version());
   mpz_t n;
   mpz_init(n);
   mpz_clear(n);
-  printf("cairo: %s\n", cairo_version_string());
-  printf("gmp: %s\n", gmp_version);
+  pw_init(&argc, &argv);
+  printf("pipewire %s/%s ", pw_get_headers_version(),
+   pw_get_library_version());
+  printf("cairo: %s gmp: %s\n", cairo_version_string(), gmp_version);
   cairo_surface_t *s = NULL;
   if (argc == 2) {
     s = cairo_image_surface_create_from_png(argv[1]);
@@ -193,8 +163,11 @@ int main(int argc, char *argv[]) {
       free(pc);
       cairo_surface_destroy(s);
     }
+  } else {
+    printf("ok\n");
+    for (int L = 0; L < 26; L++) { printf("%s %d %d %d\n",
+      colorname[L], colors26[L].r, colors26[L].g, colors26[L].b);
+    }
   }
-  printf("ok\n");
-  for (int L = 0; L < 26; L++) { printf("%s %d %d %d\n", letter_color[L], colors26[L].r,colors26[L].g,colors26[L].b); }
   return 1;
 }
