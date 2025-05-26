@@ -71,6 +71,7 @@ int pixel_region_new(pxcop *pc, int x, int y, int w) {
   int n = (y * w) + x;
   int r = ++pc->nr;
   pc->pr[n] = r;
+  /*printf("New Region: %d @ %dx%d\n", r, x, y);*/
   return r;
 }
 
@@ -91,6 +92,8 @@ int pixel_region_join(pxcop *pc, int r, int x, int y, int w) {
 }
 
 int rgbcmp(rgba32 *p1, rgba32 *p2) {
+  if (((p1->r < 255) && (p2->r < 255 )) && ((p1->g < 255) && (p2->g < 255 ))
+   && ((p1->b < 255) && (p2->b < 255 ))) return 1;
   if ((p1->r == p2->r) && (p1->g == p2->g) && (p1->b == p2->b)) return 1;
   return 0;
 }
@@ -103,7 +106,7 @@ int px_scan(pxcop *pc, rgba32 *px, int w, int h) {
   u64 np = w * h;
   printf("Area: %dx%d\n", w, h);
   printf("Pixels: %lu MAX: %d \n", np, BIG_SZ);
-  if (np > BIG_SZ) { printf("So Many pixels!\n"); return 1; }
+  if (np > BIG_SZ) { printf("To fn big many pixels!\n"); return 1; }
   for (y = 0; y < h; y++) {
     for (x = 0; x < w; x++) {
       rgba32 *upleft = NULL;
@@ -154,8 +157,11 @@ int main(int argc, char *argv[]) {
     s = cairo_image_surface_create_from_png(argv[1]);
     if (s) {
       if (cairo_surface_status(s)) return 1;
-      pxcop *pc = malloc(sizeof(*pc));
+      pxcop *pc;
+      printf("szofis: %zu\n", sizeof(*pc));
+      pc = malloc(sizeof(*pc));
       memset(pc, 0, sizeof(*pc));
+      printf("szofis: %zu\n", sizeof(*pc));
       printf("scanning %s\n", argv[1]);
       int ret = px_scan(pc, (rgba32 *)cairo_image_surface_get_data(s),
         cairo_image_surface_get_width(s), cairo_image_surface_get_height(s));
