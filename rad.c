@@ -18,9 +18,12 @@ int radical(int n) {
 int main() {
   int n = 1;
   int nr = 0;
+  int r = 0;
   for (;n<294967294;n++) {
-    if (n == radical(n)) continue;
-    printf("#%d rad(%d) = %d\n", ++nr, n, radical(n));
+    r = radical(n);
+    if (n == r) continue;
+    if (r != 26) continue;
+    printf("#%d rad(%d) = %d\n", ++nr, n, r);
   }
   return 0;
 }

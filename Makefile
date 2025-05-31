@@ -1,5 +1,6 @@
 clack: Again
 	@gcc -Wall `pkg-config --libs --cflags cairo gmp libpipewire-0.3` fp.c -o fp.exe
+	@clang -Wall `pkg-config --libs --cflags cairo gmp libpipewire-0.3` fp.c -o fp.exe
 	@clang -Wall rad.c -o rad.exe
 Again: Great
 	@echo 'Again'

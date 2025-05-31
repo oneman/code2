@@ -3,6 +3,7 @@
 #include <cairo.h>
 #include <pipewire/pipewire.h>
 #include <sys/types.h>
+#include <sys/stat.h>
 typedef float f32;
 typedef double f64;
 typedef u_int8_t u8;
@@ -55,36 +56,36 @@ typedef struct {
   int nr;
   int nrj;
   int pr[BIG_SZ];
-} pxcop;
+} pxrop;
 
-int pixel_region_count(pxcop *pc) {
-  return pc->nr - pc->nrj;
+int pixel_region_count(pxrop *pr) {
+  return pr->nr - pr->nrj;
 }
 
-int pixel_region_get(pxcop *pc, int x, int y, int w) {
+int pixel_region_get(pxrop *pr, int x, int y, int w) {
   int n = (y * w) + x;
-  int r = pc->pr[n];
+  int r = pr->pr[n];
   return r;
 }
 
-int pixel_region_new(pxcop *pc, int x, int y, int w) {
+int pixel_region_new(pxrop *pr, int x, int y, int w) {
   int n = (y * w) + x;
-  int r = ++pc->nr;
-  pc->pr[n] = r;
+  int r = ++pr->nr;
+  pr->pr[n] = r;
   /*printf("New Region: %d @ %dx%d\n", r, x, y);*/
   return r;
 }
 
-int pixel_region_join(pxcop *pc, int r, int x, int y, int w) {
+int pixel_region_join(pxrop *pr, int r, int x, int y, int w) {
   int n = (y * w) + x;
-  int old_r = pc->pr[n];
-  pc->pr[n] = r;
+  int old_r = pr->pr[n];
+  pr->pr[n] = r;
   if ((old_r) && (old_r != r)) {
-    pc->nrj++;
+    pr->nrj++;
     int start = 0;
     for (int i = start; i < n; i++) {
-      if (pc->pr[i] == old_r) {
-        pc->pr[i] = r;
+      if (pr->pr[i] == old_r) {
+        pr->pr[i] = r;
       }
     }
   }
@@ -92,20 +93,19 @@ int pixel_region_join(pxcop *pc, int r, int x, int y, int w) {
 }
 
 int rgbcmp(rgba32 *p1, rgba32 *p2) {
-  if (((p1->r < 255) && (p2->r < 255 )) && ((p1->g < 255) && (p2->g < 255 ))
-   && ((p1->b < 255) && (p2->b < 255 ))) return 1;
+  if (((p1->r < 255) && (p2->r < 255)) && ((p1->g < 255) && (p2->g < 255))
+   && ((p1->b < 255) && (p2->b < 255))) return 1;
   if ((p1->r == p2->r) && (p1->g == p2->g) && (p1->b == p2->b)) return 1;
   return 0;
 }
 
-int px_scan(pxcop *pc, rgba32 *px, int w, int h) {
-  if ((w < 1) || (h < 1) || !pc || !px) return 1;
+int pxrscan(pxrop *pr, rgba32 *px, int w, int h) {
+  if ((w < 1) || (h < 1) || !pr || !px) return 1;
   int x;
   int y;
   int r;
   u64 np = w * h;
-  printf("Area: %dx%d\n", w, h);
-  printf("Pixels: %lu MAX: %d \n", np, BIG_SZ);
+  printf("Area: %dx%d %lu MAX: %d\n",  w, h, np, BIG_SZ);
   if (np > BIG_SZ) { printf("To fn big many pixels!\n"); return 1; }
   for (y = 0; y < h; y++) {
     for (x = 0; x < w; x++) {
@@ -121,27 +121,66 @@ int px_scan(pxcop *pc, rgba32 *px, int w, int h) {
         if (x < (w - 1)) upright = &px[((y - 1) * w) + (x + 1)];
       }
       if ((upleft) && (rgbcmp(cur, upleft))) {
-        r = pixel_region_get(pc, x - 1, y - 1, w);
-        pixel_region_join(pc, r, x, y, w);
+        r = pixel_region_get(pr, x - 1, y - 1, w);
+        pixel_region_join(pr, r, x, y, w);
       }
       if ((up) && (rgbcmp(cur, up))) {
-        r = pixel_region_get(pc, x, y - 1, w);
-        pixel_region_join(pc, r, x, y, w);
+        r = pixel_region_get(pr, x, y - 1, w);
+        pixel_region_join(pr, r, x, y, w);
       }
       if ((left) && (rgbcmp(cur, left))) {
-        r = pixel_region_get(pc, x - 1, y, w);
-        pixel_region_join(pc, r, x, y, w);
+        r = pixel_region_get(pr, x - 1, y, w);
+        pixel_region_join(pr, r, x, y, w);
       }
       if ((upright) && (rgbcmp(cur, upright))) {
-        r = pixel_region_get(pc, x + 1, y - 1, w);
-        pixel_region_join(pc, r, x, y, w);
+        r = pixel_region_get(pr, x + 1, y - 1, w);
+        pixel_region_join(pr, r, x, y, w);
       }
-      if (!pixel_region_get(pc, x, y, w)) {
-        pixel_region_new(pc, x, y, w);
+      if (!pixel_region_get(pr, x, y, w)) {
+        pixel_region_new(pr, x, y, w);
       }
     }
   }
-  return pixel_region_count(pc);
+  return pixel_region_count(pr);
+}
+
+int pxrprint(pxrop *pr, rgba32 *px, int w, int h, char *filename) {
+  if ((w < 1) || (h < 1) || !pr || !px) return 1;
+  int x;
+  int y;
+  u64 r;
+  u64 n = pr->nr + pr->nrj;
+  char name[4096];
+  memset(name, 0, 4096);
+  sprintf(name, "%s.nfo", filename);  
+  mkdir(name, S_IRWXU | S_IRWXG | S_IROTH);
+  for (r = 0; r <= n; r++) {
+    cairo_surface_t *s = NULL;
+    s = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, w, h);
+    if (cairo_surface_status(s)) return 1;
+    cairo_t *c = cairo_create(s);
+    cairo_set_source_rgba(c, 1, 1, 1, 0);
+    cairo_paint(c);
+    cairo_destroy(c);
+    cairo_surface_flush(s);
+    rgba32 *npx = (rgba32 *)cairo_image_surface_get_data(s);
+    int rpx = 0;
+    for (y = 0; y < h; y++) {
+      for (x = 0; x < w; x++) {
+        if (r != pixel_region_get(pr, x, y, w)) continue;
+        npx[(y * w) + x] = px[(y * w) + x];
+	rpx++;
+      }
+    }
+    if (rpx) {
+      cairo_surface_mark_dirty(s);
+      memset(name, 0, 4096);
+      sprintf(name, "%s.nfo/%lu.png", filename, r);
+      cairo_surface_write_to_png(s, name);
+    }
+    cairo_surface_destroy(s);
+  }
+  return 0;
 }
 
 int main(int argc, char *argv[]) {
@@ -157,20 +196,21 @@ int main(int argc, char *argv[]) {
     s = cairo_image_surface_create_from_png(argv[1]);
     if (s) {
       if (cairo_surface_status(s)) return 1;
-      pxcop *pc;
-      printf("szofis: %zu\n", sizeof(*pc));
-      pc = malloc(sizeof(*pc));
-      memset(pc, 0, sizeof(*pc));
-      printf("szofis: %zu\n", sizeof(*pc));
+      pxrop *pr;
+      pr = malloc(sizeof(*pr));
+      memset(pr, 0, sizeof(*pr));
       printf("scanning %s\n", argv[1]);
-      int ret = px_scan(pc, (rgba32 *)cairo_image_surface_get_data(s),
-        cairo_image_surface_get_width(s), cairo_image_surface_get_height(s));
-      if (ret) { printf("Got %d regions\n", ret); }
-      free(pc);
+      pxrscan(pr, (rgba32 *)cairo_image_surface_get_data(s),
+       cairo_image_surface_get_width(s),
+       cairo_image_surface_get_height(s));
+      pxrprint(pr, (rgba32 *)cairo_image_surface_get_data(s),
+       cairo_image_surface_get_width(s),
+       cairo_image_surface_get_height(s),
+       argv[1]);
+      free(pr);
       cairo_surface_destroy(s);
     }
   } else {
-    printf("ok\n");
     for (int L = 0; L < 26; L++) { printf("%s %d %d %d\n",
       colorname[L], colors26[L].r, colors26[L].g, colors26[L].b);
     }
