@@ -204,6 +204,12 @@ int pxrprint(pxrop *pr, rgba32 *px, int w, int h, char *filename) {
     cairo_t *c = cairo_create(s);
     cairo_set_source_rgb(c, 1, 0, 0);
     cairo_paint(c);
+    rgba32 *npx = (rgba32 *)cairo_image_surface_get_data(s);
+    for (y = 0; y < rh; y++) {
+      for (x = 0; x < rw; x++) {
+        npx[y * rw + x] = px[(y + rt) * w + (x + rl)];
+      }
+    }
     cairo_surface_mark_dirty(s);
     memset(name, 0, 4096);
     sprintf(name, "%s.nfo/%lu_out.png", filename, r);
