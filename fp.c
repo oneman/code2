@@ -169,7 +169,7 @@ int pxrprint(pxrop *pr, rgba32 *px, int w, int h, char *filename) {
       for (x = 0; x < w; x++) {
         if (r != pixel_region_get(pr, x, y, w)) continue;
         npx[(y * w) + x] = px[(y * w) + x];
-	rpx++;
+        rpx++;
       }
     }
     if (rpx) {
@@ -178,6 +178,36 @@ int pxrprint(pxrop *pr, rgba32 *px, int w, int h, char *filename) {
       sprintf(name, "%s.nfo/%lu.png", filename, r);
       cairo_surface_write_to_png(s, name);
     }
+    cairo_surface_destroy(s);
+  }
+  for (r = 0; r <= n; r++) {
+    int rt = -1;
+    int rl = -1;
+    int rr = 0;
+    int rb = 0;
+    for (y = 0; y < h; y++) {
+      for (x = 0; x < w; x++) {
+        if (r != pixel_region_get(pr, x, y, w)) continue;
+        if (rt == -1) { rt = y; rl = x; }
+        if (x < rl) rl = x;
+        if (x > rr) rr = x;
+        if (y > rb) rb = y;
+      }
+    }
+    if ((rl == -1) && (rt == -1)) continue;
+    int rw = (rr - rl) + 1;
+    int rh = (rb - rt) + 1;
+    printf("r: %lu %d,%d %dx%d\n", r, rl, rt, rw, rh);
+    cairo_surface_t *s = NULL;
+    s = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, rw, rh);
+    if (cairo_surface_status(s)) return 1;
+    cairo_t *c = cairo_create(s);
+    cairo_set_source_rgb(c, 1, 0, 0);
+    cairo_paint(c);
+    cairo_surface_mark_dirty(s);
+    memset(name, 0, 4096);
+    sprintf(name, "%s.nfo/%lu_out.png", filename, r);
+    cairo_surface_write_to_png(s, name);
     cairo_surface_destroy(s);
   }
   return 0;
