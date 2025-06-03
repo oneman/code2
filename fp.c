@@ -154,6 +154,7 @@ int pxrprint(pxrop *pr, rgba32 *px, int w, int h, char *filename) {
   memset(name, 0, 4096);
   sprintf(name, "%s.nfo", filename);  
   mkdir(name, S_IRWXU | S_IRWXG | S_IROTH);
+  /*
   for (r = 0; r <= n; r++) {
     cairo_surface_t *s = NULL;
     s = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, w, h);
@@ -180,6 +181,7 @@ int pxrprint(pxrop *pr, rgba32 *px, int w, int h, char *filename) {
     }
     cairo_surface_destroy(s);
   }
+  */
   for (r = 0; r <= n; r++) {
     int rt = -1;
     int rl = -1;
@@ -249,6 +251,27 @@ int main(int argc, char *argv[]) {
   } else {
     for (int L = 0; L < 26; L++) { printf("%s %d %d %d\n",
       colorname[L], colors26[L].r, colors26[L].g, colors26[L].b);
+    }
+    int log[1024];
+    memset(log,0,sizeof(log));
+    u64 i = 2;
+    for (;i < 1000000000;) {
+      u64 n = i;
+      u64 steps = 0;
+      for (; n != 1;) {
+        steps++;
+        if ((n % 2) == 0) { n = n / 2; } else { n = (n * 3) + 1; }
+      }
+      log[steps]++;
+      if (steps == 26) printf("742	 %10lu: %4lu steps #[%d]\n", i, steps, log[steps]);
+/*      if (steps == 742) printf("742	 %10lu: %4lu steps #[%d]\n", i, steps, log[steps]);
+      if (steps == 800) printf("800 %10lu: %4lu steps #[%d]\n", i, steps, log[steps]);
+      if (steps == 803) printf("803 %10lu: %4lu steps #[%d]\n", i, steps, log[steps]);            
+ */     i++;
+    }
+    for (i = 0; i < 1000; i++) {
+      if (!log[i]) continue;
+    //  printf("%10lu: %3d\n", i, log[i]);
     }
   }
   return 1;
