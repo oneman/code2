@@ -4,7 +4,6 @@
 #include <pipewire/pipewire.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <math.h>
 typedef float f32;
 typedef double f64;
 typedef u_int8_t u8;
@@ -83,7 +82,7 @@ typedef struct {
   uint8_t g;
   uint8_t b;
   uint8_t a;
-} rgba32;
+} pxl;
 
 typedef enum {
   amethyst, blue, caramel, damnson, ebony,
@@ -103,7 +102,7 @@ static char *colorname[26] = {
   "zorange"
 };
 
-static const rgba32 colors26[26] = {
+static const pxl colors26[26] = {
   {241,163,255}, {0,116,255}, {155,64,0}, {76,0,92}, {26,26,26},
   {0,92,48}, {42,207,72}, {255,205,153}, {126,126,126}, {149,255,181},
   {143,124,0}, {157,205,0}, {195,0,137}, {50,129,255}, {165,4,255},
@@ -118,19 +117,19 @@ typedef struct {
   int nr;
   int nrj;
   int pr[BIG_SZ];
-} pxrop;
+} pxr;
 
-int pixel_region_count(pxrop *pr) {
+int pxr_count(pxr *pr) {
   return pr->nr - pr->nrj;
 }
 
-int pixel_region_get(pxrop *pr, int x, int y, int w) {
+int pxr_get(pxr *pr, int x, int y, int w) {
   int n = (y * w) + x;
   int r = pr->pr[n];
   return r;
 }
 
-int pixel_region_new(pxrop *pr, int x, int y, int w) {
+int pxr_new(pxr *pr, int x, int y, int w) {
   int n = (y * w) + x;
   int r = ++pr->nr;
   pr->pr[n] = r;
@@ -138,7 +137,7 @@ int pixel_region_new(pxrop *pr, int x, int y, int w) {
   return r;
 }
 
-int pixel_region_join(pxrop *pr, int r, int x, int y, int w) {
+int pxr_join(pxr *pr, int r, int x, int y, int w) {
   int n = (y * w) + x;
   int old_r = pr->pr[n];
   pr->pr[n] = r;
@@ -154,14 +153,14 @@ int pixel_region_join(pxrop *pr, int r, int x, int y, int w) {
   return r;
 }
 
-int rgbcmp(rgba32 *p1, rgba32 *p2) {
+int pxlcmp(pxl *p1, pxl *p2) {
   if (((p1->r < 255) && (p2->r < 255)) && ((p1->g < 255) && (p2->g < 255))
    && ((p1->b < 255) && (p2->b < 255))) return 1;
   if ((p1->r == p2->r) && (p1->g == p2->g) && (p1->b == p2->b)) return 1;
   return 0;
 }
 
-int pxrscan(pxrop *pr, rgba32 *px, int w, int h) {
+int pxrscan(pxr *pr, pxl *px, int w, int h) {
   if ((w < 1) || (h < 1) || !pr || !px) return 1;
   int x;
   int y;
@@ -171,42 +170,42 @@ int pxrscan(pxrop *pr, rgba32 *px, int w, int h) {
   if (np > BIG_SZ) { printf("To fn big many pixels!\n"); return 1; }
   for (y = 0; y < h; y++) {
     for (x = 0; x < w; x++) {
-      rgba32 *upleft = NULL;
-      rgba32 *up = NULL;
-      rgba32 *left = NULL;
-      rgba32 *upright = NULL;
-      rgba32 *cur = &px[(y * w) + x];
+      pxl *upleft = NULL;
+      pxl *up = NULL;
+      pxl *left = NULL;
+      pxl *upright = NULL;
+      pxl *cur = &px[(y * w) + x];
       if (x > 0) left = &px[(y * w) + (x - 1)];
       if (y > 0) {
         up = &px[((y - 1) * w) + x];
         if (x > 0) upleft = &px[((y - 1) * w) + (x - 1)];
         if (x < (w - 1)) upright = &px[((y - 1) * w) + (x + 1)];
       }
-      if ((upleft) && (rgbcmp(cur, upleft))) {
-        r = pixel_region_get(pr, x - 1, y - 1, w);
-        pixel_region_join(pr, r, x, y, w);
+      if ((upleft) && (pxlcmp(cur, upleft))) {
+        r = pxr_get(pr, x - 1, y - 1, w);
+        pxr_join(pr, r, x, y, w);
       }
-      if ((up) && (rgbcmp(cur, up))) {
-        r = pixel_region_get(pr, x, y - 1, w);
-        pixel_region_join(pr, r, x, y, w);
+      if ((up) && (pxlcmp(cur, up))) {
+        r = pxr_get(pr, x, y - 1, w);
+        pxr_join(pr, r, x, y, w);
       }
-      if ((left) && (rgbcmp(cur, left))) {
-        r = pixel_region_get(pr, x - 1, y, w);
-        pixel_region_join(pr, r, x, y, w);
+      if ((left) && (pxlcmp(cur, left))) {
+        r = pxr_get(pr, x - 1, y, w);
+        pxr_join(pr, r, x, y, w);
       }
-      if ((upright) && (rgbcmp(cur, upright))) {
-        r = pixel_region_get(pr, x + 1, y - 1, w);
-        pixel_region_join(pr, r, x, y, w);
+      if ((upright) && (pxlcmp(cur, upright))) {
+        r = pxr_get(pr, x + 1, y - 1, w);
+        pxr_join(pr, r, x, y, w);
       }
-      if (!pixel_region_get(pr, x, y, w)) {
-        pixel_region_new(pr, x, y, w);
+      if (!pxr_get(pr, x, y, w)) {
+        pxr_new(pr, x, y, w);
       }
     }
   }
-  return pixel_region_count(pr);
+  return pxr_count(pr);
 }
 
-int pxrprint(pxrop *pr, rgba32 *px, int w, int h, char *filename) {
+int pxrprint(pxr *pr, pxl *px, int w, int h, char *filename) {
   if ((w < 1) || (h < 1) || !pr || !px) return 1;
   int x;
   int y;
@@ -226,11 +225,11 @@ int pxrprint(pxrop *pr, rgba32 *px, int w, int h, char *filename) {
     cairo_paint(c);
     cairo_destroy(c);
     cairo_surface_flush(s);
-    rgba32 *npx = (rgba32 *)cairo_image_surface_get_data(s);
+    pxl *npx = (pxl *)cairo_image_surface_get_data(s);
     int rpx = 0;
     for (y = 0; y < h; y++) {
       for (x = 0; x < w; x++) {
-        if (r != pixel_region_get(pr, x, y, w)) continue;
+        if (r != pxr_get(pr, x, y, w)) continue;
         npx[(y * w) + x] = px[(y * w) + x];
         rpx++;
       }
@@ -251,7 +250,7 @@ int pxrprint(pxrop *pr, rgba32 *px, int w, int h, char *filename) {
     int rb = 0;
     for (y = 0; y < h; y++) {
       for (x = 0; x < w; x++) {
-        if (r != pixel_region_get(pr, x, y, w)) continue;
+        if (r != pxr_get(pr, x, y, w)) continue;
         if (rt == -1) { rt = y; rl = x; }
         if (x < rl) rl = x;
         if (x > rr) rr = x;
@@ -268,7 +267,7 @@ int pxrprint(pxrop *pr, rgba32 *px, int w, int h, char *filename) {
     cairo_t *c = cairo_create(s);
     cairo_set_source_rgb(c, 1, 0, 0);
     cairo_paint(c);
-    rgba32 *npx = (rgba32 *)cairo_image_surface_get_data(s);
+    pxl *npx = (pxl *)cairo_image_surface_get_data(s);
     for (y = 0; y < rh; y++) {
       for (x = 0; x < rw; x++) {
         npx[y * rw + x] = px[(y + rt) * w + (x + rl)];
@@ -296,14 +295,14 @@ int main(int argc, char *argv[]) {
     s = cairo_image_surface_create_from_png(argv[1]);
     if (s) {
       if (cairo_surface_status(s)) return 1;
-      pxrop *pr;
+      pxr *pr;
       pr = malloc(sizeof(*pr));
       memset(pr, 0, sizeof(*pr));
       printf("scanning %s\n", argv[1]);
-      pxrscan(pr, (rgba32 *)cairo_image_surface_get_data(s),
+      pxrscan(pr, (pxl *)cairo_image_surface_get_data(s),
        cairo_image_surface_get_width(s),
        cairo_image_surface_get_height(s));
-      pxrprint(pr, (rgba32 *)cairo_image_surface_get_data(s),
+      pxrprint(pr, (pxl *)cairo_image_surface_get_data(s),
        cairo_image_surface_get_width(s),
        cairo_image_surface_get_height(s),
        argv[1]);
