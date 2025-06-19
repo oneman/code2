@@ -4,6 +4,7 @@
 #include <pipewire/pipewire.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <math.h>
 typedef float f32;
 typedef double f64;
 typedef u_int8_t u8;
