@@ -1,1 +1,3 @@
 clang -Wall -o hi hi.c
+clang -Wall -o hit hit.c
+
