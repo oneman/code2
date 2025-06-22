@@ -1,12 +1,5 @@
 #include <stdio.h>
 #include <unistd.h>
-typedef struct {
-  int number;
-  char name[96];
-  int sz;
-} label;
-static label unicode[40454];
-
 void tohex(int decimal_Number)
 {
     int i = 1, j, temp;
@@ -73,6 +66,5 @@ int main(int argc, char **argv) {
     tohex(i);
     tobase26(i);
   }
-  printf("hi uc %zu\n", sizeof(unicode));
   return 0;
 }

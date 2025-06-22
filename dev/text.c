@@ -222,6 +222,12 @@ int is_uadod(u8 c) {
   return u_dohead(c);
 }
 
+int is_bindigit(u8 c) {
+  if (c == '0') return 1;
+  if (c == '1') return 1;
+  return 0;
+}
+
 int is_hexdigit(u8 c) {
   if (c == 'A') return 1;
   if (c == 'B') return 1;
