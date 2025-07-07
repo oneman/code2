@@ -14,7 +14,17 @@ static codeblockpointname un[UNICODEVERSION16NAMECOUNT] = {
 };
 int main(int argc, char **argv) {
   for (int i = 0; i < 40454; i++) {
-    printf("%d %d %d %s\n", i, un[i].n, un[i].sz, un[i].a);
+    char *a = un[i].a;
+    int n = un[i].n;
+    int sz = un[i].sz;        
+    //printf("%d %d %d %s\n", i, n, sz, a);
+    if (sz == 1) {
+      if (((n >= 8192) && (n <= 11264)) || ((n >= 127024) && (n <= 130048))) {
+        printf("%d %d %d %s\n", i, n, sz, a);
+      } else {
+        //printf("%d %d %d %s\n", i, n, sz, a);
+      }
+    }
   }
   return 0;
 }
