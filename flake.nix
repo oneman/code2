@@ -22,7 +22,8 @@
             pkgs.clang
             pkgs.gmp
             pkgs.cairo
-            pkgs.xcb
+            pkgs.xorg.libxcb
+            pkgs.libxkbcommon
             pkgs.pipewire
             pkgs.pkg-config
           ];
@@ -40,9 +41,10 @@
             pkgs.clang
             pkgs.gmp
             pkgs.cairo
-            pkgs.xcb
+            pkgs.xorg.libxcb
             pkgs.pipewire
             pkgs.pkg-config
+            pkgs.libxkbcommon
           ];
         };
       });
