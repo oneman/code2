@@ -1,0 +1,56 @@
+1+8*26-83
+
+bin/dec/hex/letter/morse/nato/rgbname/rgb/sporatic/element/position
+
+(mid mid) -> center
+
+front top left
+front top mid
+front top right
+front mid left
+front mid mid
+front mid right
+front bottom left
+front bottom middle
+front bottom right
+mid top left
+mid top mid
+mid top right
+mid mid left
+mid mid right
+mid bottom left
+mid bottom middle
+mid bottom right
+back top left
+back top mid
+back top right
+back mid left
+back mid mid
+back mid right
+back bottom left
+back bottom middle
+back bottom right
+
+
+abc
+def
+ghi
+
+jkl
+m n
+opq
+
+rst
+uvw
+xyz
+
+
+abc
+def
+ghi
+   jkl
+   m n
+   opq
+      rst
+      uvw
+      xyz
