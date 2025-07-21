@@ -22,6 +22,7 @@
             pkgs.clang
             pkgs.gmp
             pkgs.cairo
+            pkgs.xcb
             pkgs.pipewire
             pkgs.pkg-config
           ];
@@ -39,6 +40,7 @@
             pkgs.clang
             pkgs.gmp
             pkgs.cairo
+            pkgs.xcb
             pkgs.pipewire
             pkgs.pkg-config
           ];
