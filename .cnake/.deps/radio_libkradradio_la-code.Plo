@@ -1,0 +1,1007 @@
+cnake/radio_libkradradio_la-code.lo: cnake/code.c cnake/header.h \
+  /usr/include/sys/types.h /usr/include/features.h \
+  /usr/include/features-time64.h /usr/include/bits/wordsize.h \
+  /usr/include/bits/timesize.h /usr/include/stdc-predef.h \
+  /usr/include/sys/cdefs.h /usr/include/bits/long-double.h \
+  /usr/include/gnu/stubs.h /usr/include/gnu/stubs-64.h \
+  /usr/include/bits/types.h /usr/include/bits/typesizes.h \
+  /usr/include/bits/time64.h /usr/include/bits/types/clock_t.h \
+  /usr/include/bits/types/clockid_t.h /usr/include/bits/types/time_t.h \
+  /usr/include/bits/types/timer_t.h /usr/lib/clang/20/include/stddef.h \
+  /usr/lib/clang/20/include/__stddef_size_t.h \
+  /usr/include/bits/stdint-intn.h /usr/include/endian.h \
+  /usr/include/bits/endian.h /usr/include/bits/endianness.h \
+  /usr/include/bits/byteswap.h /usr/include/bits/uintn-identity.h \
+  /usr/include/sys/select.h /usr/include/bits/select.h \
+  /usr/include/bits/types/sigset_t.h \
+  /usr/include/bits/types/__sigset_t.h \
+  /usr/include/bits/types/struct_timeval.h \
+  /usr/include/bits/types/struct_timespec.h \
+  /usr/include/bits/pthreadtypes.h \
+  /usr/include/bits/thread-shared-types.h \
+  /usr/include/bits/pthreadtypes-arch.h \
+  /usr/include/bits/atomic_wide_counter.h \
+  /usr/include/bits/struct_mutex.h /usr/include/bits/struct_rwlock.h \
+  ../include/krad/app/debug.h ../include/krad/mem/mem.h \
+  /usr/lib/clang/20/include/__stddef_header_macro.h \
+  /usr/lib/clang/20/include/__stddef_ptrdiff_t.h \
+  /usr/lib/clang/20/include/__stddef_wchar_t.h \
+  /usr/lib/clang/20/include/__stddef_null.h \
+  /usr/lib/clang/20/include/__stddef_max_align_t.h \
+  /usr/lib/clang/20/include/__stddef_offsetof.h \
+  ../include/krad/cnake/header.h cnake/stdheaders.h \
+  /usr/include/unistd.h /usr/include/bits/posix_opt.h \
+  /usr/include/bits/environments.h /usr/include/bits/confname.h \
+  /usr/include/bits/getopt_posix.h /usr/include/bits/getopt_core.h \
+  /usr/include/bits/unistd_ext.h /usr/include/linux/close_range.h \
+  /usr/include/stdio.h /usr/include/bits/libc-header-start.h \
+  /usr/lib/clang/20/include/stdarg.h \
+  /usr/lib/clang/20/include/__stdarg___gnuc_va_list.h \
+  /usr/include/bits/types/__fpos_t.h \
+  /usr/include/bits/types/__mbstate_t.h \
+  /usr/include/bits/types/__fpos64_t.h /usr/include/bits/types/__FILE.h \
+  /usr/include/bits/types/FILE.h /usr/include/bits/types/struct_FILE.h \
+  /usr/include/bits/types/cookie_io_functions_t.h \
+  /usr/include/bits/stdio_lim.h /usr/include/bits/floatn.h \
+  /usr/include/bits/floatn-common.h /usr/include/bits/stdio.h \
+  /usr/include/stdlib.h /usr/include/bits/waitflags.h \
+  /usr/include/bits/waitstatus.h /usr/include/bits/types/locale_t.h \
+  /usr/include/bits/types/__locale_t.h /usr/include/alloca.h \
+  /usr/include/bits/stdlib-bsearch.h /usr/include/bits/stdlib-float.h \
+  cnake/key.c /usr/include/linux/uinput.h /usr/include/linux/types.h \
+  /usr/include/asm/types.h /usr/include/asm-generic/types.h \
+  /usr/include/asm-generic/int-ll64.h /usr/include/asm/bitsperlong.h \
+  /usr/include/asm-generic/bitsperlong.h \
+  /usr/include/linux/posix_types.h /usr/include/linux/stddef.h \
+  /usr/include/asm/posix_types.h /usr/include/asm/posix_types_64.h \
+  /usr/include/asm-generic/posix_types.h /usr/include/linux/input.h \
+  /usr/include/sys/time.h /usr/include/sys/ioctl.h \
+  /usr/include/bits/ioctls.h /usr/include/asm/ioctls.h \
+  /usr/include/asm-generic/ioctls.h /usr/include/linux/ioctl.h \
+  /usr/include/asm/ioctl.h /usr/include/asm-generic/ioctl.h \
+  /usr/include/bits/ioctl-types.h /usr/include/sys/ttydefaults.h \
+  /usr/include/linux/input-event-codes.h /usr/include/fcntl.h \
+  /usr/include/bits/fcntl.h /usr/include/bits/fcntl-linux.h \
+  /usr/include/bits/types/struct_iovec.h /usr/include/linux/falloc.h \
+  /usr/include/bits/stat.h /usr/include/bits/struct_stat.h \
+  /usr/include/string.h /usr/include/strings.h cnake/code2.c \
+  /usr/include/sys/stat.h /usr/include/bits/statx.h \
+  /usr/include/linux/stat.h /usr/include/bits/statx-generic.h \
+  /usr/include/bits/types/struct_statx_timestamp.h \
+  /usr/include/bits/types/struct_statx.h /usr/include/sys/syscall.h \
+  /usr/include/asm/unistd.h /usr/include/asm/unistd_64.h \
+  /usr/include/bits/syscall.h /usr/include/sys/utsname.h \
+  /usr/include/bits/utsname.h /usr/include/dirent.h \
+  /usr/include/bits/dirent.h /usr/include/bits/posix1_lim.h \
+  /usr/include/bits/local_lim.h /usr/include/linux/limits.h \
+  /usr/include/bits/pthread_stack_min-dynamic.h \
+  /usr/include/bits/dirent_ext.h /usr/include/err.h /usr/include/errno.h \
+  /usr/include/bits/errno.h /usr/include/linux/errno.h \
+  /usr/include/asm/errno.h /usr/include/asm-generic/errno.h \
+  /usr/include/asm-generic/errno-base.h \
+  /usr/include/bits/types/error_t.h /usr/include/time.h \
+  /usr/include/bits/time.h /usr/include/bits/timex.h \
+  /usr/include/bits/types/struct_tm.h \
+  /usr/include/bits/types/struct_itimerspec.h /usr/include/fts.h \
+  ../include/krad/io/file2.h ../include/krad/io/types.h \
+  /usr/lib/clang/20/include/inttypes.h /usr/include/inttypes.h \
+  /usr/lib/clang/20/include/stdint.h /usr/include/stdint.h \
+  /usr/include/bits/wchar.h /usr/include/bits/stdint-uintn.h \
+  /usr/include/bits/stdint-least.h \
+  ../include/krad/io/gen/types_to_ebml.h \
+  ../include/krad/io/gen/../types.h ../include/krad/ebml/ebml.h \
+  ../include/krad/io/gen/types_from_ebml.h \
+  ../include/krad/io/gen/types_helpers.h ../include/krad/app/path.h \
+  ../include/krad/app/patch.h ../include/krad/gen/info_types.h \
+  ../include/krad/app/diff.h ../include/krad/io/gen/types_to_text.h \
+  ../include/krad/io/gen/types_to_json.h \
+  ../include/krad/io/gen/types_from_json.h /usr/include/ctype.h \
+  /usr/lib/clang/20/include/limits.h /usr/include/limits.h \
+  /usr/include/bits/posix2_lim.h /usr/include/bits/xopen_lim.h \
+  /usr/include/bits/uio_lim.h /usr/include/locale.h \
+  /usr/include/bits/locale.h /usr/include/sys/uio.h \
+  /usr/include/bits/uio-ext.h ../include/krad/radio/client.h \
+  ../include/krad/radio/types.h ../include/krad/mixer/types.h \
+  ../include/krad/audio/audio.h ../include/krad/audio/convert.h \
+  ../include/krad/audio/types.h \
+  ../include/krad/audio/gen/types_to_json.h \
+  ../include/krad/audio/gen/../types.h \
+  ../include/krad/audio/gen/types_from_json.h \
+  ../include/krad/audio/gen/types_to_ebml.h \
+  ../include/krad/audio/gen/types_from_ebml.h \
+  ../include/krad/audio/gen/types_to_text.h \
+  ../include/krad/audio/gen/types_helpers.h \
+  ../include/krad/mixer/gen/types_to_json.h \
+  ../include/krad/mixer/gen/../types.h \
+  ../include/krad/mixer/gen/types_from_json.h \
+  ../include/krad/mixer/gen/types_to_ebml.h \
+  ../include/krad/mixer/gen/types_from_ebml.h \
+  ../include/krad/mixer/gen/types_to_text.h \
+  ../include/krad/mixer/gen/types_helpers.h \
+  ../include/krad/compositor/types.h ../include/krad/perspective/types.h \
+  ../include/krad/perspective/gen/types_to_json.h \
+  ../include/krad/perspective/gen/../types.h \
+  ../include/krad/perspective/gen/types_from_json.h \
+  ../include/krad/perspective/gen/types_to_ebml.h \
+  ../include/krad/perspective/gen/types_from_ebml.h \
+  ../include/krad/perspective/gen/types_to_text.h \
+  ../include/krad/perspective/gen/types_helpers.h \
+  ../include/krad/image/types.h \
+  ../include/krad/image/gen/types_to_json.h \
+  ../include/krad/image/gen/../types.h \
+  ../include/krad/image/gen/types_from_json.h \
+  ../include/krad/image/gen/types_to_ebml.h \
+  ../include/krad/image/gen/types_from_ebml.h \
+  ../include/krad/image/gen/types_to_text.h \
+  ../include/krad/image/gen/types_helpers.h \
+  ../include/krad/draw/vector_types.h \
+  ../include/krad/draw/gen/vector_types_to_json.h \
+  ../include/krad/draw/gen/../vector_types.h \
+  ../include/krad/draw/gen/vector_types_from_json.h \
+  ../include/krad/draw/gen/vector_types_to_ebml.h \
+  ../include/krad/draw/gen/vector_types_from_ebml.h \
+  ../include/krad/draw/gen/vector_types_to_text.h \
+  ../include/krad/draw/gen/vector_types_helpers.h \
+  ../include/krad/draw/text_types.h \
+  ../include/krad/draw/gen/text_types_to_json.h \
+  ../include/krad/draw/gen/../text_types.h \
+  ../include/krad/draw/gen/text_types_from_json.h \
+  ../include/krad/draw/gen/text_types_to_ebml.h \
+  ../include/krad/draw/gen/text_types_from_ebml.h \
+  ../include/krad/draw/gen/text_types_to_text.h \
+  ../include/krad/draw/gen/text_types_helpers.h \
+  ../include/krad/compositor/gen/types_to_json.h \
+  ../include/krad/compositor/gen/../types.h \
+  ../include/krad/compositor/gen/types_from_json.h \
+  ../include/krad/compositor/gen/types_to_ebml.h \
+  ../include/krad/compositor/gen/types_from_ebml.h \
+  ../include/krad/compositor/gen/types_to_text.h \
+  ../include/krad/compositor/gen/types_helpers.h \
+  ../include/krad/xpdr/types.h ../include/krad/adapter/hw/alsa/types.h \
+  ../include/krad/adapter/hw/alsa/gen/types_to_ebml.h \
+  ../include/krad/adapter/hw/alsa/gen/../types.h \
+  ../include/krad/adapter/hw/alsa/gen/types_from_ebml.h \
+  ../include/krad/adapter/hw/alsa/gen/types_to_text.h \
+  ../include/krad/adapter/hw/alsa/gen/types_to_json.h \
+  ../include/krad/adapter/hw/alsa/gen/types_from_json.h \
+  ../include/krad/adapter/hw/alsa/gen/types_helpers.h \
+  ../include/krad/adapter/hw/v4l2/types.h \
+  ../include/krad/adapter/hw/v4l2/gen/types_to_ebml.h \
+  ../include/krad/adapter/hw/v4l2/gen/../types.h \
+  ../include/krad/adapter/hw/v4l2/gen/types_from_ebml.h \
+  ../include/krad/adapter/hw/v4l2/gen/types_to_text.h \
+  ../include/krad/adapter/hw/v4l2/gen/types_to_json.h \
+  ../include/krad/adapter/hw/v4l2/gen/types_from_json.h \
+  ../include/krad/adapter/hw/v4l2/gen/types_helpers.h \
+  ../include/krad/adapter/hw/decklink/types.h \
+  ../include/krad/adapter/hw/decklink/gen/types_to_ebml.h \
+  ../include/krad/adapter/hw/decklink/gen/../types.h \
+  ../include/krad/adapter/hw/decklink/gen/types_from_ebml.h \
+  ../include/krad/adapter/hw/decklink/gen/types_to_text.h \
+  ../include/krad/adapter/hw/decklink/gen/types_to_json.h \
+  ../include/krad/adapter/hw/decklink/gen/types_from_json.h \
+  ../include/krad/adapter/hw/decklink/gen/types_helpers.h \
+  ../include/krad/adapter/sw/jack/types.h \
+  ../include/krad/adapter/sw/jack/gen/types_to_ebml.h \
+  ../include/krad/adapter/sw/jack/gen/../types.h \
+  ../include/krad/adapter/sw/jack/gen/types_from_ebml.h \
+  ../include/krad/adapter/sw/jack/gen/types_to_text.h \
+  ../include/krad/adapter/sw/jack/gen/types_to_json.h \
+  ../include/krad/adapter/sw/jack/gen/types_from_json.h \
+  ../include/krad/adapter/sw/jack/gen/types_helpers.h \
+  ../include/krad/adapter/sw/wayland/types.h \
+  ../include/krad/adapter/sw/wayland/gen/types_to_ebml.h \
+  ../include/krad/adapter/sw/wayland/gen/../types.h \
+  ../include/krad/adapter/sw/wayland/gen/types_from_ebml.h \
+  ../include/krad/adapter/sw/wayland/gen/types_to_text.h \
+  ../include/krad/adapter/sw/wayland/gen/types_to_json.h \
+  ../include/krad/adapter/sw/wayland/gen/types_from_json.h \
+  ../include/krad/adapter/sw/wayland/gen/types_helpers.h \
+  ../include/krad/adapter/sw/x11/types.h \
+  ../include/krad/adapter/sw/x11/gen/types_to_ebml.h \
+  ../include/krad/adapter/sw/x11/gen/../types.h \
+  ../include/krad/adapter/sw/x11/gen/types_from_ebml.h \
+  ../include/krad/adapter/sw/x11/gen/types_to_text.h \
+  ../include/krad/adapter/sw/x11/gen/types_to_json.h \
+  ../include/krad/adapter/sw/x11/gen/types_from_json.h \
+  ../include/krad/adapter/sw/x11/gen/types_helpers.h \
+  ../include/krad/adapter/sw/aux/types.h \
+  ../include/krad/adapter/sw/aux/gen/types_to_ebml.h \
+  ../include/krad/adapter/sw/aux/gen/../types.h \
+  ../include/krad/adapter/sw/aux/gen/types_from_ebml.h \
+  ../include/krad/adapter/sw/aux/gen/types_to_text.h \
+  ../include/krad/adapter/sw/aux/gen/types_to_json.h \
+  ../include/krad/adapter/sw/aux/gen/types_from_json.h \
+  ../include/krad/adapter/sw/aux/gen/types_helpers.h \
+  ../include/krad/xpdr/gen/types_to_ebml.h \
+  ../include/krad/xpdr/gen/../types.h \
+  ../include/krad/xpdr/gen/types_from_ebml.h \
+  ../include/krad/xpdr/gen/types_helpers.h \
+  ../include/krad/xpdr/gen/types_to_text.h \
+  ../include/krad/xpdr/gen/types_to_json.h \
+  ../include/krad/xpdr/gen/types_from_json.h \
+  ../include/krad/radio/version.h ../include/krad/app/types.h \
+  ../include/krad/app/common.h ../include/krad/app/crate.h \
+  ../include/krad/gen/info_functions.h ../include/krad/codec/types.h \
+  ../include/krad/codec/gen/types_to_json.h \
+  ../include/krad/codec/gen/../types.h \
+  ../include/krad/codec/gen/types_from_json.h \
+  ../include/krad/codec/gen/types_to_ebml.h \
+  ../include/krad/codec/gen/types_from_ebml.h \
+  ../include/krad/codec/gen/types_to_text.h \
+  ../include/krad/codec/gen/types_helpers.h \
+  ../include/krad/container/mpeg/ts/types.h \
+  ../include/krad/container/mpeg/ts/gen/types_to_json.h \
+  ../include/krad/container/mpeg/ts/gen/../types.h \
+  ../include/krad/container/mpeg/ts/gen/types_from_json.h \
+  ../include/krad/container/mpeg/ts/gen/types_to_ebml.h \
+  ../include/krad/container/mpeg/ts/gen/types_from_ebml.h \
+  ../include/krad/container/mpeg/ts/gen/types_to_text.h \
+  ../include/krad/container/mpeg/ts/gen/types_helpers.h \
+  ../include/krad/container/types.h \
+  ../include/krad/container/gen/types_to_json.h \
+  ../include/krad/container/gen/../types.h \
+  ../include/krad/container/gen/types_from_json.h \
+  ../include/krad/container/gen/types_to_ebml.h \
+  ../include/krad/container/gen/types_from_ebml.h \
+  ../include/krad/container/gen/types_to_text.h \
+  ../include/krad/container/gen/types_helpers.h \
+  ../include/krad/feat/types.h ../include/krad/feat/gen/types_to_json.h \
+  ../include/krad/feat/gen/../types.h \
+  ../include/krad/feat/gen/types_from_json.h \
+  ../include/krad/feat/gen/types_to_ebml.h \
+  ../include/krad/feat/gen/types_from_ebml.h \
+  ../include/krad/feat/gen/types_to_text.h \
+  ../include/krad/feat/gen/types_helpers.h \
+  ../include/krad/image/stash_types.h \
+  ../include/krad/image/gen/stash_types_to_json.h \
+  ../include/krad/image/gen/../stash_types.h \
+  ../include/krad/image/gen/stash_types_from_json.h \
+  ../include/krad/image/gen/stash_types_to_ebml.h \
+  ../include/krad/image/gen/stash_types_from_ebml.h \
+  ../include/krad/image/gen/stash_types_to_text.h \
+  ../include/krad/image/gen/stash_types_helpers.h \
+  ../include/krad/ops/media/types.h ../include/krad/time/types.h \
+  ../include/krad/time/gen/types_to_json.h \
+  ../include/krad/time/gen/../types.h \
+  ../include/krad/time/gen/types_from_json.h \
+  ../include/krad/time/gen/types_to_ebml.h \
+  ../include/krad/time/gen/types_from_ebml.h \
+  ../include/krad/time/gen/types_helpers.h \
+  ../include/krad/time/gen/types_to_text.h \
+  ../include/krad/ops/media/gen/types_to_text.h \
+  ../include/krad/ops/media/gen/../types.h \
+  ../include/krad/ops/media/gen/types_helpers.h \
+  ../include/krad/ops/media/gen/types_to_json.h \
+  ../include/krad/ops/media/gen/types_from_json.h \
+  ../include/krad/ops/types.h ../include/krad/ops/gen/types_to_text.h \
+  ../include/krad/ops/gen/../types.h \
+  ../include/krad/ops/gen/types_helpers.h \
+  ../include/krad/ops/gen/types_to_json.h \
+  ../include/krad/ops/gen/types_from_json.h \
+  ../include/krad/playlist/m3u_types.h \
+  ../include/krad/playlist/gen/types_to_ebml.h \
+  ../include/krad/playlist/gen/../m3u_types.h \
+  ../include/krad/playlist/gen/types_from_ebml.h \
+  ../include/krad/playlist/gen/types_to_json.h \
+  ../include/krad/playlist/gen/types_from_json.h \
+  ../include/krad/playlist/gen/types_to_text.h \
+  ../include/krad/playlist/gen/types_helpers.h \
+  ../include/krad/radio/limit_types.h \
+  ../include/krad/radio/gen/limit_types_to_ebml.h \
+  ../include/krad/radio/gen/../limit_types.h \
+  ../include/krad/radio/gen/limit_types_from_ebml.h \
+  ../include/krad/radio/gen/limit_types_to_json.h \
+  ../include/krad/radio/gen/limit_types_from_json.h \
+  ../include/krad/radio/gen/limit_types_to_text.h \
+  ../include/krad/radio/gen/limit_types_helpers.h \
+  ../include/krad/system/types.h \
+  ../include/krad/system/gen/types_to_text.h \
+  ../include/krad/system/gen/../types.h \
+  ../include/krad/system/gen/types_helpers.h \
+  ../include/krad/tasks/avconv/types.h \
+  ../include/krad/tasks/avconv/gen/types_to_text.h \
+  ../include/krad/tasks/avconv/gen/../types.h \
+  ../include/krad/tasks/avconv/gen/types_helpers.h \
+  ../include/krad/tasks/avconv/gen/types_to_json.h \
+  ../include/krad/tasks/avconv/gen/types_from_json.h \
+  ../include/krad/tasks/avprobe/types.h \
+  ../include/krad/tasks/avprobe/gen/types_to_text.h \
+  ../include/krad/tasks/avprobe/gen/../types.h \
+  ../include/krad/tasks/avprobe/gen/types_helpers.h \
+  ../include/krad/tasks/avprobe/gen/types_to_json.h \
+  ../include/krad/tasks/avprobe/gen/types_from_json.h \
+  ../include/krad/tasks/curl/types.h \
+  ../include/krad/tasks/curl/gen/types_to_text.h \
+  ../include/krad/tasks/curl/gen/../types.h \
+  ../include/krad/tasks/curl/gen/types_helpers.h \
+  ../include/krad/tasks/curl/gen/types_to_json.h \
+  ../include/krad/tasks/curl/gen/types_from_json.h \
+  ../include/krad/tasks/livestreamer/types.h \
+  ../include/krad/tasks/livestreamer/gen/types_to_text.h \
+  ../include/krad/tasks/livestreamer/gen/../types.h \
+  ../include/krad/tasks/livestreamer/gen/types_helpers.h \
+  ../include/krad/tasks/livestreamer/gen/types_to_json.h \
+  ../include/krad/tasks/livestreamer/gen/types_from_json.h \
+  ../include/krad/tasks/quvi/types.h \
+  ../include/krad/tasks/quvi/gen/types_to_text.h \
+  ../include/krad/tasks/quvi/gen/../types.h \
+  ../include/krad/tasks/quvi/gen/types_helpers.h \
+  ../include/krad/tasks/quvi/gen/types_to_json.h \
+  ../include/krad/tasks/quvi/gen/types_from_json.h \
+  ../include/krad/tasks/transmission_cli/types.h \
+  ../include/krad/tasks/transmission_cli/gen/types_to_text.h \
+  ../include/krad/tasks/transmission_cli/gen/../types.h \
+  ../include/krad/tasks/transmission_cli/gen/types_helpers.h \
+  ../include/krad/tasks/transmission_cli/gen/types_to_json.h \
+  ../include/krad/tasks/transmission_cli/gen/types_from_json.h \
+  ../include/krad/tasks/types.h \
+  ../include/krad/tasks/valgrind_stressor/types.h \
+  ../include/krad/tasks/valgrind_stressor/gen/types_to_text.h \
+  ../include/krad/tasks/valgrind_stressor/gen/../types.h \
+  ../include/krad/tasks/valgrind_stressor/gen/types_helpers.h \
+  ../include/krad/tasks/valgrind_stressor/gen/types_to_json.h \
+  ../include/krad/tasks/valgrind_stressor/gen/types_from_json.h \
+  ../include/krad/tasks/xmms/types.h \
+  ../include/krad/tasks/xmms/gen/types_to_text.h \
+  ../include/krad/tasks/xmms/gen/../types.h \
+  ../include/krad/tasks/xmms/gen/types_helpers.h \
+  ../include/krad/tasks/xmms/gen/types_to_json.h \
+  ../include/krad/tasks/xmms/gen/types_from_json.h \
+  ../include/krad/tasks/ydl/types.h \
+  ../include/krad/tasks/ydl/gen/types_to_text.h \
+  ../include/krad/tasks/ydl/gen/../types.h \
+  ../include/krad/tasks/ydl/gen/types_helpers.h \
+  ../include/krad/tasks/ydl/gen/types_to_json.h \
+  ../include/krad/tasks/ydl/gen/types_from_json.h \
+  ../include/krad/tasks/gen/types_to_text.h \
+  ../include/krad/tasks/gen/../types.h \
+  ../include/krad/tasks/gen/types_helpers.h \
+  ../include/krad/tasks/gen/types_to_json.h \
+  ../include/krad/tasks/gen/types_from_json.h \
+  ../include/krad/track/media_types.h \
+  ../include/krad/track/gen/media_types_to_json.h \
+  ../include/krad/track/gen/../media_types.h \
+  ../include/krad/track/gen/media_types_from_json.h \
+  ../include/krad/track/gen/media_types_to_ebml.h \
+  ../include/krad/track/gen/media_types_from_ebml.h \
+  ../include/krad/track/gen/media_types_to_text.h \
+  ../include/krad/track/gen/media_types_helpers.h \
+  ../include/krad/track/types.h ../include/krad/xfer/types.h \
+  ../include/krad/web/types.h ../include/krad/web/gen/types_to_json.h \
+  ../include/krad/web/gen/../types.h \
+  ../include/krad/web/gen/types_from_json.h \
+  ../include/krad/web/gen/types_to_ebml.h \
+  ../include/krad/web/gen/types_from_ebml.h \
+  ../include/krad/web/gen/types_to_text.h \
+  ../include/krad/web/gen/types_helpers.h \
+  ../include/krad/xfer/gen/types_to_ebml.h \
+  ../include/krad/xfer/gen/../types.h \
+  ../include/krad/xfer/gen/types_from_ebml.h \
+  ../include/krad/xfer/gen/types_helpers.h \
+  ../include/krad/xfer/gen/types_to_text.h \
+  ../include/krad/xfer/gen/types_to_json.h \
+  ../include/krad/xfer/gen/types_from_json.h \
+  ../include/krad/track/gen/types_to_json.h \
+  ../include/krad/track/gen/../types.h \
+  ../include/krad/track/gen/types_from_json.h \
+  ../include/krad/track/gen/types_to_ebml.h \
+  ../include/krad/track/gen/types_from_ebml.h \
+  ../include/krad/track/gen/types_to_text.h \
+  ../include/krad/track/gen/types_helpers.h \
+  ../include/krad/tuner/hls_types.h \
+  ../include/krad/tuner/gen/types_to_ebml.h \
+  ../include/krad/tuner/gen/../hls_types.h \
+  ../include/krad/tuner/gen/types_from_ebml.h \
+  ../include/krad/tuner/gen/types_to_json.h \
+  ../include/krad/tuner/gen/types_from_json.h \
+  ../include/krad/tuner/gen/types_to_text.h \
+  ../include/krad/tuner/gen/types_helpers.h \
+  ../include/krad/video/types.h \
+  ../include/krad/video/gen/types_to_json.h \
+  ../include/krad/video/gen/../types.h \
+  ../include/krad/video/gen/types_from_json.h \
+  ../include/krad/video/gen/types_to_ebml.h \
+  ../include/krad/video/gen/types_from_ebml.h \
+  ../include/krad/video/gen/types_to_text.h \
+  ../include/krad/video/gen/types_helpers.h \
+  ../include/krad/app/gen/types_to_ebml.h \
+  ../include/krad/app/gen/../types.h \
+  ../include/krad/app/gen/types_from_ebml.h \
+  ../include/krad/app/gen/types_to_json.h \
+  ../include/krad/app/gen/types_from_json.h \
+  ../include/krad/app/gen/types_to_text.h \
+  ../include/krad/app/gen/types_helpers.h \
+  ../include/krad/radio/gen/types_to_ebml.h \
+  ../include/krad/radio/gen/../types.h \
+  ../include/krad/radio/gen/types_from_ebml.h \
+  ../include/krad/radio/gen/types_to_json.h \
+  ../include/krad/radio/gen/types_from_json.h \
+  ../include/krad/radio/gen/types_to_text.h \
+  ../include/krad/radio/gen/types_helpers.h \
+  ../include/krad/xpdr/client.h ../include/krad/adapter/sw/aux/client.h \
+  ../include/krad/video/frame.h ../include/krad/image/image.h \
+  ../include/krad/xpdr/event.h ../include/krad/compositor/client.h \
+  ../include/krad/mixer/client.h ../include/krad/radio/control.h \
+  cnake/font.c /usr/local/include/freetype2/ft2build.h \
+  /usr/local/include/freetype2/freetype/config/ftheader.h \
+  /usr/local/include/freetype2/freetype/freetype.h \
+  /usr/local/include/freetype2/freetype/config/ftconfig.h \
+  /usr/local/include/freetype2/freetype/config/ftoption.h \
+  /usr/local/include/freetype2/freetype/config/ftstdlib.h \
+  /usr/include/setjmp.h /usr/include/bits/setjmp.h \
+  /usr/include/bits/types/struct___jmp_buf_tag.h \
+  /usr/lib/clang/20/include/__stdarg_header_macro.h \
+  /usr/lib/clang/20/include/__stdarg_va_list.h \
+  /usr/lib/clang/20/include/__stdarg_va_arg.h \
+  /usr/lib/clang/20/include/__stdarg___va_copy.h \
+  /usr/lib/clang/20/include/__stdarg_va_copy.h \
+  /usr/local/include/freetype2/freetype/config/integer-types.h \
+  /usr/local/include/freetype2/freetype/config/public-macros.h \
+  /usr/local/include/freetype2/freetype/config/mac-support.h \
+  /usr/local/include/freetype2/freetype/fttypes.h \
+  /usr/local/include/freetype2/freetype/ftsystem.h \
+  /usr/local/include/freetype2/freetype/ftimage.h \
+  /usr/local/include/freetype2/freetype/fterrors.h \
+  /usr/local/include/freetype2/freetype/ftmoderr.h \
+  /usr/local/include/freetype2/freetype/fterrdef.h \
+  /usr/local/include/freetype2/freetype/ftmodapi.h \
+  /usr/local/include/cairo/cairo.h \
+  /usr/local/include/cairo/cairo-version.h \
+  /usr/local/include/cairo/cairo-features.h \
+  /usr/local/include/cairo/cairo-deprecated.h cnake/pix.c cnake/text.c \
+  cnake/data.c cnake/files.c ../include/krad/io/dir.h cnake/config.c \
+  cnake/nato.c
+cnake/header.h:
+/usr/include/sys/types.h:
+/usr/include/features.h:
+/usr/include/features-time64.h:
+/usr/include/bits/wordsize.h:
+/usr/include/bits/timesize.h:
+/usr/include/stdc-predef.h:
+/usr/include/sys/cdefs.h:
+/usr/include/bits/long-double.h:
+/usr/include/gnu/stubs.h:
+/usr/include/gnu/stubs-64.h:
+/usr/include/bits/types.h:
+/usr/include/bits/typesizes.h:
+/usr/include/bits/time64.h:
+/usr/include/bits/types/clock_t.h:
+/usr/include/bits/types/clockid_t.h:
+/usr/include/bits/types/time_t.h:
+/usr/include/bits/types/timer_t.h:
+/usr/lib/clang/20/include/stddef.h:
+/usr/lib/clang/20/include/__stddef_size_t.h:
+/usr/include/bits/stdint-intn.h:
+/usr/include/endian.h:
+/usr/include/bits/endian.h:
+/usr/include/bits/endianness.h:
+/usr/include/bits/byteswap.h:
+/usr/include/bits/uintn-identity.h:
+/usr/include/sys/select.h:
+/usr/include/bits/select.h:
+/usr/include/bits/types/sigset_t.h:
+/usr/include/bits/types/__sigset_t.h:
+/usr/include/bits/types/struct_timeval.h:
+/usr/include/bits/types/struct_timespec.h:
+/usr/include/bits/pthreadtypes.h:
+/usr/include/bits/thread-shared-types.h:
+/usr/include/bits/pthreadtypes-arch.h:
+/usr/include/bits/atomic_wide_counter.h:
+/usr/include/bits/struct_mutex.h:
+/usr/include/bits/struct_rwlock.h:
+../include/krad/app/debug.h:
+../include/krad/mem/mem.h:
+/usr/lib/clang/20/include/__stddef_header_macro.h:
+/usr/lib/clang/20/include/__stddef_ptrdiff_t.h:
+/usr/lib/clang/20/include/__stddef_wchar_t.h:
+/usr/lib/clang/20/include/__stddef_null.h:
+/usr/lib/clang/20/include/__stddef_max_align_t.h:
+/usr/lib/clang/20/include/__stddef_offsetof.h:
+../include/krad/cnake/header.h:
+cnake/stdheaders.h:
+/usr/include/unistd.h:
+/usr/include/bits/posix_opt.h:
+/usr/include/bits/environments.h:
+/usr/include/bits/confname.h:
+/usr/include/bits/getopt_posix.h:
+/usr/include/bits/getopt_core.h:
+/usr/include/bits/unistd_ext.h:
+/usr/include/linux/close_range.h:
+/usr/include/stdio.h:
+/usr/include/bits/libc-header-start.h:
+/usr/lib/clang/20/include/stdarg.h:
+/usr/lib/clang/20/include/__stdarg___gnuc_va_list.h:
+/usr/include/bits/types/__fpos_t.h:
+/usr/include/bits/types/__mbstate_t.h:
+/usr/include/bits/types/__fpos64_t.h:
+/usr/include/bits/types/__FILE.h:
+/usr/include/bits/types/FILE.h:
+/usr/include/bits/types/struct_FILE.h:
+/usr/include/bits/types/cookie_io_functions_t.h:
+/usr/include/bits/stdio_lim.h:
+/usr/include/bits/floatn.h:
+/usr/include/bits/floatn-common.h:
+/usr/include/bits/stdio.h:
+/usr/include/stdlib.h:
+/usr/include/bits/waitflags.h:
+/usr/include/bits/waitstatus.h:
+/usr/include/bits/types/locale_t.h:
+/usr/include/bits/types/__locale_t.h:
+/usr/include/alloca.h:
+/usr/include/bits/stdlib-bsearch.h:
+/usr/include/bits/stdlib-float.h:
+cnake/key.c:
+/usr/include/linux/uinput.h:
+/usr/include/linux/types.h:
+/usr/include/asm/types.h:
+/usr/include/asm-generic/types.h:
+/usr/include/asm-generic/int-ll64.h:
+/usr/include/asm/bitsperlong.h:
+/usr/include/asm-generic/bitsperlong.h:
+/usr/include/linux/posix_types.h:
+/usr/include/linux/stddef.h:
+/usr/include/asm/posix_types.h:
+/usr/include/asm/posix_types_64.h:
+/usr/include/asm-generic/posix_types.h:
+/usr/include/linux/input.h:
+/usr/include/sys/time.h:
+/usr/include/sys/ioctl.h:
+/usr/include/bits/ioctls.h:
+/usr/include/asm/ioctls.h:
+/usr/include/asm-generic/ioctls.h:
+/usr/include/linux/ioctl.h:
+/usr/include/asm/ioctl.h:
+/usr/include/asm-generic/ioctl.h:
+/usr/include/bits/ioctl-types.h:
+/usr/include/sys/ttydefaults.h:
+/usr/include/linux/input-event-codes.h:
+/usr/include/fcntl.h:
+/usr/include/bits/fcntl.h:
+/usr/include/bits/fcntl-linux.h:
+/usr/include/bits/types/struct_iovec.h:
+/usr/include/linux/falloc.h:
+/usr/include/bits/stat.h:
+/usr/include/bits/struct_stat.h:
+/usr/include/string.h:
+/usr/include/strings.h:
+cnake/code2.c:
+/usr/include/sys/stat.h:
+/usr/include/bits/statx.h:
+/usr/include/linux/stat.h:
+/usr/include/bits/statx-generic.h:
+/usr/include/bits/types/struct_statx_timestamp.h:
+/usr/include/bits/types/struct_statx.h:
+/usr/include/sys/syscall.h:
+/usr/include/asm/unistd.h:
+/usr/include/asm/unistd_64.h:
+/usr/include/bits/syscall.h:
+/usr/include/sys/utsname.h:
+/usr/include/bits/utsname.h:
+/usr/include/dirent.h:
+/usr/include/bits/dirent.h:
+/usr/include/bits/posix1_lim.h:
+/usr/include/bits/local_lim.h:
+/usr/include/linux/limits.h:
+/usr/include/bits/pthread_stack_min-dynamic.h:
+/usr/include/bits/dirent_ext.h:
+/usr/include/err.h:
+/usr/include/errno.h:
+/usr/include/bits/errno.h:
+/usr/include/linux/errno.h:
+/usr/include/asm/errno.h:
+/usr/include/asm-generic/errno.h:
+/usr/include/asm-generic/errno-base.h:
+/usr/include/bits/types/error_t.h:
+/usr/include/time.h:
+/usr/include/bits/time.h:
+/usr/include/bits/timex.h:
+/usr/include/bits/types/struct_tm.h:
+/usr/include/bits/types/struct_itimerspec.h:
+/usr/include/fts.h:
+../include/krad/io/file2.h:
+../include/krad/io/types.h:
+/usr/lib/clang/20/include/inttypes.h:
+/usr/include/inttypes.h:
+/usr/lib/clang/20/include/stdint.h:
+/usr/include/stdint.h:
+/usr/include/bits/wchar.h:
+/usr/include/bits/stdint-uintn.h:
+/usr/include/bits/stdint-least.h:
+../include/krad/io/gen/types_to_ebml.h:
+../include/krad/io/gen/../types.h:
+../include/krad/ebml/ebml.h:
+../include/krad/io/gen/types_from_ebml.h:
+../include/krad/io/gen/types_helpers.h:
+../include/krad/app/path.h:
+../include/krad/app/patch.h:
+../include/krad/gen/info_types.h:
+../include/krad/app/diff.h:
+../include/krad/io/gen/types_to_text.h:
+../include/krad/io/gen/types_to_json.h:
+../include/krad/io/gen/types_from_json.h:
+/usr/include/ctype.h:
+/usr/lib/clang/20/include/limits.h:
+/usr/include/limits.h:
+/usr/include/bits/posix2_lim.h:
+/usr/include/bits/xopen_lim.h:
+/usr/include/bits/uio_lim.h:
+/usr/include/locale.h:
+/usr/include/bits/locale.h:
+/usr/include/sys/uio.h:
+/usr/include/bits/uio-ext.h:
+../include/krad/radio/client.h:
+../include/krad/radio/types.h:
+../include/krad/mixer/types.h:
+../include/krad/audio/audio.h:
+../include/krad/audio/convert.h:
+../include/krad/audio/types.h:
+../include/krad/audio/gen/types_to_json.h:
+../include/krad/audio/gen/../types.h:
+../include/krad/audio/gen/types_from_json.h:
+../include/krad/audio/gen/types_to_ebml.h:
+../include/krad/audio/gen/types_from_ebml.h:
+../include/krad/audio/gen/types_to_text.h:
+../include/krad/audio/gen/types_helpers.h:
+../include/krad/mixer/gen/types_to_json.h:
+../include/krad/mixer/gen/../types.h:
+../include/krad/mixer/gen/types_from_json.h:
+../include/krad/mixer/gen/types_to_ebml.h:
+../include/krad/mixer/gen/types_from_ebml.h:
+../include/krad/mixer/gen/types_to_text.h:
+../include/krad/mixer/gen/types_helpers.h:
+../include/krad/compositor/types.h:
+../include/krad/perspective/types.h:
+../include/krad/perspective/gen/types_to_json.h:
+../include/krad/perspective/gen/../types.h:
+../include/krad/perspective/gen/types_from_json.h:
+../include/krad/perspective/gen/types_to_ebml.h:
+../include/krad/perspective/gen/types_from_ebml.h:
+../include/krad/perspective/gen/types_to_text.h:
+../include/krad/perspective/gen/types_helpers.h:
+../include/krad/image/types.h:
+../include/krad/image/gen/types_to_json.h:
+../include/krad/image/gen/../types.h:
+../include/krad/image/gen/types_from_json.h:
+../include/krad/image/gen/types_to_ebml.h:
+../include/krad/image/gen/types_from_ebml.h:
+../include/krad/image/gen/types_to_text.h:
+../include/krad/image/gen/types_helpers.h:
+../include/krad/draw/vector_types.h:
+../include/krad/draw/gen/vector_types_to_json.h:
+../include/krad/draw/gen/../vector_types.h:
+../include/krad/draw/gen/vector_types_from_json.h:
+../include/krad/draw/gen/vector_types_to_ebml.h:
+../include/krad/draw/gen/vector_types_from_ebml.h:
+../include/krad/draw/gen/vector_types_to_text.h:
+../include/krad/draw/gen/vector_types_helpers.h:
+../include/krad/draw/text_types.h:
+../include/krad/draw/gen/text_types_to_json.h:
+../include/krad/draw/gen/../text_types.h:
+../include/krad/draw/gen/text_types_from_json.h:
+../include/krad/draw/gen/text_types_to_ebml.h:
+../include/krad/draw/gen/text_types_from_ebml.h:
+../include/krad/draw/gen/text_types_to_text.h:
+../include/krad/draw/gen/text_types_helpers.h:
+../include/krad/compositor/gen/types_to_json.h:
+../include/krad/compositor/gen/../types.h:
+../include/krad/compositor/gen/types_from_json.h:
+../include/krad/compositor/gen/types_to_ebml.h:
+../include/krad/compositor/gen/types_from_ebml.h:
+../include/krad/compositor/gen/types_to_text.h:
+../include/krad/compositor/gen/types_helpers.h:
+../include/krad/xpdr/types.h:
+../include/krad/adapter/hw/alsa/types.h:
+../include/krad/adapter/hw/alsa/gen/types_to_ebml.h:
+../include/krad/adapter/hw/alsa/gen/../types.h:
+../include/krad/adapter/hw/alsa/gen/types_from_ebml.h:
+../include/krad/adapter/hw/alsa/gen/types_to_text.h:
+../include/krad/adapter/hw/alsa/gen/types_to_json.h:
+../include/krad/adapter/hw/alsa/gen/types_from_json.h:
+../include/krad/adapter/hw/alsa/gen/types_helpers.h:
+../include/krad/adapter/hw/v4l2/types.h:
+../include/krad/adapter/hw/v4l2/gen/types_to_ebml.h:
+../include/krad/adapter/hw/v4l2/gen/../types.h:
+../include/krad/adapter/hw/v4l2/gen/types_from_ebml.h:
+../include/krad/adapter/hw/v4l2/gen/types_to_text.h:
+../include/krad/adapter/hw/v4l2/gen/types_to_json.h:
+../include/krad/adapter/hw/v4l2/gen/types_from_json.h:
+../include/krad/adapter/hw/v4l2/gen/types_helpers.h:
+../include/krad/adapter/hw/decklink/types.h:
+../include/krad/adapter/hw/decklink/gen/types_to_ebml.h:
+../include/krad/adapter/hw/decklink/gen/../types.h:
+../include/krad/adapter/hw/decklink/gen/types_from_ebml.h:
+../include/krad/adapter/hw/decklink/gen/types_to_text.h:
+../include/krad/adapter/hw/decklink/gen/types_to_json.h:
+../include/krad/adapter/hw/decklink/gen/types_from_json.h:
+../include/krad/adapter/hw/decklink/gen/types_helpers.h:
+../include/krad/adapter/sw/jack/types.h:
+../include/krad/adapter/sw/jack/gen/types_to_ebml.h:
+../include/krad/adapter/sw/jack/gen/../types.h:
+../include/krad/adapter/sw/jack/gen/types_from_ebml.h:
+../include/krad/adapter/sw/jack/gen/types_to_text.h:
+../include/krad/adapter/sw/jack/gen/types_to_json.h:
+../include/krad/adapter/sw/jack/gen/types_from_json.h:
+../include/krad/adapter/sw/jack/gen/types_helpers.h:
+../include/krad/adapter/sw/wayland/types.h:
+../include/krad/adapter/sw/wayland/gen/types_to_ebml.h:
+../include/krad/adapter/sw/wayland/gen/../types.h:
+../include/krad/adapter/sw/wayland/gen/types_from_ebml.h:
+../include/krad/adapter/sw/wayland/gen/types_to_text.h:
+../include/krad/adapter/sw/wayland/gen/types_to_json.h:
+../include/krad/adapter/sw/wayland/gen/types_from_json.h:
+../include/krad/adapter/sw/wayland/gen/types_helpers.h:
+../include/krad/adapter/sw/x11/types.h:
+../include/krad/adapter/sw/x11/gen/types_to_ebml.h:
+../include/krad/adapter/sw/x11/gen/../types.h:
+../include/krad/adapter/sw/x11/gen/types_from_ebml.h:
+../include/krad/adapter/sw/x11/gen/types_to_text.h:
+../include/krad/adapter/sw/x11/gen/types_to_json.h:
+../include/krad/adapter/sw/x11/gen/types_from_json.h:
+../include/krad/adapter/sw/x11/gen/types_helpers.h:
+../include/krad/adapter/sw/aux/types.h:
+../include/krad/adapter/sw/aux/gen/types_to_ebml.h:
+../include/krad/adapter/sw/aux/gen/../types.h:
+../include/krad/adapter/sw/aux/gen/types_from_ebml.h:
+../include/krad/adapter/sw/aux/gen/types_to_text.h:
+../include/krad/adapter/sw/aux/gen/types_to_json.h:
+../include/krad/adapter/sw/aux/gen/types_from_json.h:
+../include/krad/adapter/sw/aux/gen/types_helpers.h:
+../include/krad/xpdr/gen/types_to_ebml.h:
+../include/krad/xpdr/gen/../types.h:
+../include/krad/xpdr/gen/types_from_ebml.h:
+../include/krad/xpdr/gen/types_helpers.h:
+../include/krad/xpdr/gen/types_to_text.h:
+../include/krad/xpdr/gen/types_to_json.h:
+../include/krad/xpdr/gen/types_from_json.h:
+../include/krad/radio/version.h:
+../include/krad/app/types.h:
+../include/krad/app/common.h:
+../include/krad/app/crate.h:
+../include/krad/gen/info_functions.h:
+../include/krad/codec/types.h:
+../include/krad/codec/gen/types_to_json.h:
+../include/krad/codec/gen/../types.h:
+../include/krad/codec/gen/types_from_json.h:
+../include/krad/codec/gen/types_to_ebml.h:
+../include/krad/codec/gen/types_from_ebml.h:
+../include/krad/codec/gen/types_to_text.h:
+../include/krad/codec/gen/types_helpers.h:
+../include/krad/container/mpeg/ts/types.h:
+../include/krad/container/mpeg/ts/gen/types_to_json.h:
+../include/krad/container/mpeg/ts/gen/../types.h:
+../include/krad/container/mpeg/ts/gen/types_from_json.h:
+../include/krad/container/mpeg/ts/gen/types_to_ebml.h:
+../include/krad/container/mpeg/ts/gen/types_from_ebml.h:
+../include/krad/container/mpeg/ts/gen/types_to_text.h:
+../include/krad/container/mpeg/ts/gen/types_helpers.h:
+../include/krad/container/types.h:
+../include/krad/container/gen/types_to_json.h:
+../include/krad/container/gen/../types.h:
+../include/krad/container/gen/types_from_json.h:
+../include/krad/container/gen/types_to_ebml.h:
+../include/krad/container/gen/types_from_ebml.h:
+../include/krad/container/gen/types_to_text.h:
+../include/krad/container/gen/types_helpers.h:
+../include/krad/feat/types.h:
+../include/krad/feat/gen/types_to_json.h:
+../include/krad/feat/gen/../types.h:
+../include/krad/feat/gen/types_from_json.h:
+../include/krad/feat/gen/types_to_ebml.h:
+../include/krad/feat/gen/types_from_ebml.h:
+../include/krad/feat/gen/types_to_text.h:
+../include/krad/feat/gen/types_helpers.h:
+../include/krad/image/stash_types.h:
+../include/krad/image/gen/stash_types_to_json.h:
+../include/krad/image/gen/../stash_types.h:
+../include/krad/image/gen/stash_types_from_json.h:
+../include/krad/image/gen/stash_types_to_ebml.h:
+../include/krad/image/gen/stash_types_from_ebml.h:
+../include/krad/image/gen/stash_types_to_text.h:
+../include/krad/image/gen/stash_types_helpers.h:
+../include/krad/ops/media/types.h:
+../include/krad/time/types.h:
+../include/krad/time/gen/types_to_json.h:
+../include/krad/time/gen/../types.h:
+../include/krad/time/gen/types_from_json.h:
+../include/krad/time/gen/types_to_ebml.h:
+../include/krad/time/gen/types_from_ebml.h:
+../include/krad/time/gen/types_helpers.h:
+../include/krad/time/gen/types_to_text.h:
+../include/krad/ops/media/gen/types_to_text.h:
+../include/krad/ops/media/gen/../types.h:
+../include/krad/ops/media/gen/types_helpers.h:
+../include/krad/ops/media/gen/types_to_json.h:
+../include/krad/ops/media/gen/types_from_json.h:
+../include/krad/ops/types.h:
+../include/krad/ops/gen/types_to_text.h:
+../include/krad/ops/gen/../types.h:
+../include/krad/ops/gen/types_helpers.h:
+../include/krad/ops/gen/types_to_json.h:
+../include/krad/ops/gen/types_from_json.h:
+../include/krad/playlist/m3u_types.h:
+../include/krad/playlist/gen/types_to_ebml.h:
+../include/krad/playlist/gen/../m3u_types.h:
+../include/krad/playlist/gen/types_from_ebml.h:
+../include/krad/playlist/gen/types_to_json.h:
+../include/krad/playlist/gen/types_from_json.h:
+../include/krad/playlist/gen/types_to_text.h:
+../include/krad/playlist/gen/types_helpers.h:
+../include/krad/radio/limit_types.h:
+../include/krad/radio/gen/limit_types_to_ebml.h:
+../include/krad/radio/gen/../limit_types.h:
+../include/krad/radio/gen/limit_types_from_ebml.h:
+../include/krad/radio/gen/limit_types_to_json.h:
+../include/krad/radio/gen/limit_types_from_json.h:
+../include/krad/radio/gen/limit_types_to_text.h:
+../include/krad/radio/gen/limit_types_helpers.h:
+../include/krad/system/types.h:
+../include/krad/system/gen/types_to_text.h:
+../include/krad/system/gen/../types.h:
+../include/krad/system/gen/types_helpers.h:
+../include/krad/tasks/avconv/types.h:
+../include/krad/tasks/avconv/gen/types_to_text.h:
+../include/krad/tasks/avconv/gen/../types.h:
+../include/krad/tasks/avconv/gen/types_helpers.h:
+../include/krad/tasks/avconv/gen/types_to_json.h:
+../include/krad/tasks/avconv/gen/types_from_json.h:
+../include/krad/tasks/avprobe/types.h:
+../include/krad/tasks/avprobe/gen/types_to_text.h:
+../include/krad/tasks/avprobe/gen/../types.h:
+../include/krad/tasks/avprobe/gen/types_helpers.h:
+../include/krad/tasks/avprobe/gen/types_to_json.h:
+../include/krad/tasks/avprobe/gen/types_from_json.h:
+../include/krad/tasks/curl/types.h:
+../include/krad/tasks/curl/gen/types_to_text.h:
+../include/krad/tasks/curl/gen/../types.h:
+../include/krad/tasks/curl/gen/types_helpers.h:
+../include/krad/tasks/curl/gen/types_to_json.h:
+../include/krad/tasks/curl/gen/types_from_json.h:
+../include/krad/tasks/livestreamer/types.h:
+../include/krad/tasks/livestreamer/gen/types_to_text.h:
+../include/krad/tasks/livestreamer/gen/../types.h:
+../include/krad/tasks/livestreamer/gen/types_helpers.h:
+../include/krad/tasks/livestreamer/gen/types_to_json.h:
+../include/krad/tasks/livestreamer/gen/types_from_json.h:
+../include/krad/tasks/quvi/types.h:
+../include/krad/tasks/quvi/gen/types_to_text.h:
+../include/krad/tasks/quvi/gen/../types.h:
+../include/krad/tasks/quvi/gen/types_helpers.h:
+../include/krad/tasks/quvi/gen/types_to_json.h:
+../include/krad/tasks/quvi/gen/types_from_json.h:
+../include/krad/tasks/transmission_cli/types.h:
+../include/krad/tasks/transmission_cli/gen/types_to_text.h:
+../include/krad/tasks/transmission_cli/gen/../types.h:
+../include/krad/tasks/transmission_cli/gen/types_helpers.h:
+../include/krad/tasks/transmission_cli/gen/types_to_json.h:
+../include/krad/tasks/transmission_cli/gen/types_from_json.h:
+../include/krad/tasks/types.h:
+../include/krad/tasks/valgrind_stressor/types.h:
+../include/krad/tasks/valgrind_stressor/gen/types_to_text.h:
+../include/krad/tasks/valgrind_stressor/gen/../types.h:
+../include/krad/tasks/valgrind_stressor/gen/types_helpers.h:
+../include/krad/tasks/valgrind_stressor/gen/types_to_json.h:
+../include/krad/tasks/valgrind_stressor/gen/types_from_json.h:
+../include/krad/tasks/xmms/types.h:
+../include/krad/tasks/xmms/gen/types_to_text.h:
+../include/krad/tasks/xmms/gen/../types.h:
+../include/krad/tasks/xmms/gen/types_helpers.h:
+../include/krad/tasks/xmms/gen/types_to_json.h:
+../include/krad/tasks/xmms/gen/types_from_json.h:
+../include/krad/tasks/ydl/types.h:
+../include/krad/tasks/ydl/gen/types_to_text.h:
+../include/krad/tasks/ydl/gen/../types.h:
+../include/krad/tasks/ydl/gen/types_helpers.h:
+../include/krad/tasks/ydl/gen/types_to_json.h:
+../include/krad/tasks/ydl/gen/types_from_json.h:
+../include/krad/tasks/gen/types_to_text.h:
+../include/krad/tasks/gen/../types.h:
+../include/krad/tasks/gen/types_helpers.h:
+../include/krad/tasks/gen/types_to_json.h:
+../include/krad/tasks/gen/types_from_json.h:
+../include/krad/track/media_types.h:
+../include/krad/track/gen/media_types_to_json.h:
+../include/krad/track/gen/../media_types.h:
+../include/krad/track/gen/media_types_from_json.h:
+../include/krad/track/gen/media_types_to_ebml.h:
+../include/krad/track/gen/media_types_from_ebml.h:
+../include/krad/track/gen/media_types_to_text.h:
+../include/krad/track/gen/media_types_helpers.h:
+../include/krad/track/types.h:
+../include/krad/xfer/types.h:
+../include/krad/web/types.h:
+../include/krad/web/gen/types_to_json.h:
+../include/krad/web/gen/../types.h:
+../include/krad/web/gen/types_from_json.h:
+../include/krad/web/gen/types_to_ebml.h:
+../include/krad/web/gen/types_from_ebml.h:
+../include/krad/web/gen/types_to_text.h:
+../include/krad/web/gen/types_helpers.h:
+../include/krad/xfer/gen/types_to_ebml.h:
+../include/krad/xfer/gen/../types.h:
+../include/krad/xfer/gen/types_from_ebml.h:
+../include/krad/xfer/gen/types_helpers.h:
+../include/krad/xfer/gen/types_to_text.h:
+../include/krad/xfer/gen/types_to_json.h:
+../include/krad/xfer/gen/types_from_json.h:
+../include/krad/track/gen/types_to_json.h:
+../include/krad/track/gen/../types.h:
+../include/krad/track/gen/types_from_json.h:
+../include/krad/track/gen/types_to_ebml.h:
+../include/krad/track/gen/types_from_ebml.h:
+../include/krad/track/gen/types_to_text.h:
+../include/krad/track/gen/types_helpers.h:
+../include/krad/tuner/hls_types.h:
+../include/krad/tuner/gen/types_to_ebml.h:
+../include/krad/tuner/gen/../hls_types.h:
+../include/krad/tuner/gen/types_from_ebml.h:
+../include/krad/tuner/gen/types_to_json.h:
+../include/krad/tuner/gen/types_from_json.h:
+../include/krad/tuner/gen/types_to_text.h:
+../include/krad/tuner/gen/types_helpers.h:
+../include/krad/video/types.h:
+../include/krad/video/gen/types_to_json.h:
+../include/krad/video/gen/../types.h:
+../include/krad/video/gen/types_from_json.h:
+../include/krad/video/gen/types_to_ebml.h:
+../include/krad/video/gen/types_from_ebml.h:
+../include/krad/video/gen/types_to_text.h:
+../include/krad/video/gen/types_helpers.h:
+../include/krad/app/gen/types_to_ebml.h:
+../include/krad/app/gen/../types.h:
+../include/krad/app/gen/types_from_ebml.h:
+../include/krad/app/gen/types_to_json.h:
+../include/krad/app/gen/types_from_json.h:
+../include/krad/app/gen/types_to_text.h:
+../include/krad/app/gen/types_helpers.h:
+../include/krad/radio/gen/types_to_ebml.h:
+../include/krad/radio/gen/../types.h:
+../include/krad/radio/gen/types_from_ebml.h:
+../include/krad/radio/gen/types_to_json.h:
+../include/krad/radio/gen/types_from_json.h:
+../include/krad/radio/gen/types_to_text.h:
+../include/krad/radio/gen/types_helpers.h:
+../include/krad/xpdr/client.h:
+../include/krad/adapter/sw/aux/client.h:
+../include/krad/video/frame.h:
+../include/krad/image/image.h:
+../include/krad/xpdr/event.h:
+../include/krad/compositor/client.h:
+../include/krad/mixer/client.h:
+../include/krad/radio/control.h:
+cnake/font.c:
+/usr/local/include/freetype2/ft2build.h:
+/usr/local/include/freetype2/freetype/config/ftheader.h:
+/usr/local/include/freetype2/freetype/freetype.h:
+/usr/local/include/freetype2/freetype/config/ftconfig.h:
+/usr/local/include/freetype2/freetype/config/ftoption.h:
+/usr/local/include/freetype2/freetype/config/ftstdlib.h:
+/usr/include/setjmp.h:
+/usr/include/bits/setjmp.h:
+/usr/include/bits/types/struct___jmp_buf_tag.h:
+/usr/lib/clang/20/include/__stdarg_header_macro.h:
+/usr/lib/clang/20/include/__stdarg_va_list.h:
+/usr/lib/clang/20/include/__stdarg_va_arg.h:
+/usr/lib/clang/20/include/__stdarg___va_copy.h:
+/usr/lib/clang/20/include/__stdarg_va_copy.h:
+/usr/local/include/freetype2/freetype/config/integer-types.h:
+/usr/local/include/freetype2/freetype/config/public-macros.h:
+/usr/local/include/freetype2/freetype/config/mac-support.h:
+/usr/local/include/freetype2/freetype/fttypes.h:
+/usr/local/include/freetype2/freetype/ftsystem.h:
+/usr/local/include/freetype2/freetype/ftimage.h:
+/usr/local/include/freetype2/freetype/fterrors.h:
+/usr/local/include/freetype2/freetype/ftmoderr.h:
+/usr/local/include/freetype2/freetype/fterrdef.h:
+/usr/local/include/freetype2/freetype/ftmodapi.h:
+/usr/local/include/cairo/cairo.h:
+/usr/local/include/cairo/cairo-version.h:
+/usr/local/include/cairo/cairo-features.h:
+/usr/local/include/cairo/cairo-deprecated.h:
+cnake/pix.c:
+cnake/text.c:
+cnake/data.c:
+cnake/files.c:
+../include/krad/io/dir.h:
+cnake/config.c:
+cnake/nato.c:

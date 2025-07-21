@@ -48,8 +48,8 @@ int radical(int n) {
   return  n * radn;
 }
 
-#define W 500
-#define H 500
+#define W 1920
+#define H 1080
 
 static unsigned char img[W * H * 3];
 
@@ -107,6 +107,19 @@ typedef enum {
   uranium, version, wine, xanthin, yellow,
   zorange
 } ncolor;
+
+typedef enum {
+  alpha, bravo, charlie, delta, echo, foxtrot, golf, hotel, india, juliet, kilo,
+  lima, mike, november, oscar, papa, quebec, romeo, sierra, tango, uniform,
+  victor, whiskey, xray, yankee, zulu
+} nato;
+
+static char *natoname[26] = {
+  "alpha", "bravo", "charlie", "delta", "echo", "foxtrot", "golf", "hotel",
+  "india", "juliet", "kilo", "lima", "mike", "november", "oscar", "papa",
+  "quebec", "romeo", "sierra", "tango", "uniform", "victor", "whiskey", "xray",
+  "yankee", "zulu"
+};
 
 static char *colorname[26] = {
   "amethyst", "blue", "caramel", "damnson", "ebony",
@@ -351,9 +364,15 @@ int oldmain(int argc, char *argv[]) {
 
 */
 
+int main(void) {
+
 xcb_connection_t    *c;
 xcb_screen_t        *screen;
 
+  /* Open the connection to the X server */
+  c = xcb_connect (NULL, NULL);
+  /* Get the first screen */
+  screen = xcb_setup_roots_iterator (xcb_get_setup (c)).data;
 
 /* graphics contexts */
 xcb_gcontext_t       foreground;
@@ -366,7 +385,7 @@ xcb_drawable_t       pid;
 xcb_point_t line_start;
 xcb_point_t line_end;
 
-void create_window() {
+
   uint32_t             mask = 0;
   uint32_t             values[2];
 
@@ -384,7 +403,7 @@ void create_window() {
 		    screen->root_depth,
 		    pid,
 		    screen->root,
-		    500, 500);
+		    1920, 1080);
 
   /* context for filling with white */
   fill = xcb_generate_id(c);
@@ -405,8 +424,8 @@ void create_window() {
                      win,                           /* window Id           */
                      screen->root,                  /* parent window       */
                      0, 0,                          /* x, y                */
-                     150, 150,                      /* width, height       */
-                     10,                            /* border_width        */
+                     1920, 1080,                      /* width, height       */
+                     0,                            /* border_width        */
                      XCB_WINDOW_CLASS_INPUT_OUTPUT, /* class               */
                      screen->root_visual,           /* visual              */
                      mask, values);                 /* masks */
@@ -415,25 +434,26 @@ void create_window() {
   xcb_map_window (c, win);
 
   /* fill the pixmap with white (it starts empty) */
-  xcb_poly_fill_rectangle(c, pid, fill, 1, (xcb_rectangle_t[]){{ 0, 0, 500, 500}});
-  
-}
+  xcb_poly_fill_rectangle(c, pid, fill, 1, (xcb_rectangle_t[]){{ 0, 0, W, H}});
 
+  xcb_flush(c);
 
-void event_loop() {
   xcb_generic_event_t *e;
+  int q = 0;
   while ((e = xcb_wait_for_event (c))) {
+    if (q == 5) break;
     switch (e->response_type & ~0x80) {
 
     case XCB_KEY_PRESS: {
       /* fill pixmap with white */
       /* why isn't this happening */
-      xcb_poly_fill_rectangle_checked(c, pid, fill, 1, (xcb_rectangle_t[]){{ 0, 0, 500, 500}});
+      xcb_poly_fill_rectangle_checked(c, pid, fill, 1, (xcb_rectangle_t[]){{ 0, 0, W, H}});
       
       /* clear win to reveal pixmap */
-      xcb_clear_area(c, 1, win, 0, 0, 500,500);
+      xcb_clear_area(c, 1, win, 0, 0, W, H);
       
       xcb_flush(c);
+      q++;
       break;
     }
 
@@ -445,7 +465,7 @@ void event_loop() {
 	2. update mouse_pos
 	3. draw line from line_start to mouse_pos
       */
-      xcb_clear_area(c, 1, win,0, 0, 500,500);
+      xcb_clear_area(c, 1, win,0, 0, W, H);
       xcb_point_t mouse_pos = { (ev->event_x - line_start.x), (ev->event_y - line_start.y)} ;
       xcb_point_t points[] = {line_start, mouse_pos};
       xcb_poly_line (c, XCB_COORD_MODE_PREVIOUS, win, foreground, 2, points);
@@ -485,19 +505,7 @@ void event_loop() {
     free (e);
   }
   
-}
 
-int main(void) {
-  /* Open the connection to the X server */
-  c = xcb_connect (NULL, NULL);
-  /* Get the first screen */
-  screen = xcb_setup_roots_iterator (xcb_get_setup (c)).data;
-
-  create_window();
-
-  xcb_flush(c);
-
-  event_loop();
 
   puts("bye!");
   return EXIT_SUCCESS;
