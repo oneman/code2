@@ -383,6 +383,18 @@ int main(void) {
 	  char filename[256];
 	  snprintf(filename, 256, "map/%c/%c/%s%s.png",
 	                               c1, c2, nato[c1 - 97], nato[c2 - 97]);
+	  cairo_surface_t *cst = cairo_image_surface_create_from_png(filename);
+	  if (cairo_image_surface_get_width(cst) != 1920) exit(1);
+    if (cairo_image_surface_get_height(cst) != 1080) exit(1);
+    if (cairo_image_surface_get_stride(cst) != 1920 * 4) exit(1);
+    //if (cairo_image_surface_get_format(cst) != CAIRO_FORMAT_ARGB32) exit(1);
+    unsigned char *dat = cairo_image_surface_get_data(cst);
+    for (int px = 0; px < 1920*1080; px++) {
+      DAT[px * 3] = dat[px * 4];
+      DAT[px * 3 + 1] = dat[px * 4 + 1];
+      DAT[px * 3 + 2] = dat[px * 4 + 2];
+    }
+	  /*
 	  cairo_surface_t *cst = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, 1920,
 	                                                                        1080);
 	  
@@ -405,6 +417,7 @@ int main(void) {
     cairo_surface_write_to_png(cst, filename);
     cairo_destroy(cr);
     cairo_surface_destroy(cst);
+    */
 	}
   printf("all set\n");
 	xcb_connection_t    *c;
