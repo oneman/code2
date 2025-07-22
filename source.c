@@ -369,7 +369,7 @@ int oldmain(int argc, char *argv[]) {
 int main(void) {
   int R;
   int FD;
-  long SZ = 1026675 * PAGE_SZ;
+  long SZ = 4205260800;
   char *DAT;
   if ((FD = memfd_create("pixmap-framebuffer", 0)) < 0) return 1;
   printf("mem FD\n");
