@@ -114,9 +114,9 @@ typedef enum {
   alpha, bravo, charlie, delta, echo, foxtrot, golf, hotel, india, juliet, kilo,
   lima, mike, november, oscar, papa, quebec, romeo, sierra, tango, uniform,
   victor, whiskey, xray, yankee, zulu
-} nato;
+} NATO;
 
-static char *natoname[26] = {
+static char *nato[26] = {
   "alpha", "bravo", "charlie", "delta", "echo", "foxtrot", "golf", "hotel",
   "india", "juliet", "kilo", "lima", "mike", "november", "oscar", "papa",
   "quebec", "romeo", "sierra", "tango", "uniform", "victor", "whiskey", "xray",
@@ -370,15 +370,43 @@ int main(void) {
   int R;
   int FD;
   long SZ = 4205260800;
-  char *DAT;
+  unsigned char *DAT;
   if ((FD = memfd_create("pixmap-framebuffer", 0)) < 0) return 1;
   printf("mem FD\n");
   do { R = ftruncate(FD, SZ); } while (R < 0 && errno == EINTR);
   printf("ftruncate 4205260800\n");
 	DAT = mmap(NULL, SZ, PROT_READ | PROT_WRITE, MAP_SHARED, FD, 0);
 	printf("mmap DAT\n");
-	for (u64 i = 0; i < SZ; i++) { DAT[i] = 26; }
-	printf("all set\n");
+	for (int i = 0; i < 676; i++) {
+	  char c1 = 96 + 1 + (i / 26);
+	  char c2 = 96 + 1 + (i % 26);
+	  char filename[256];
+	  snprintf(filename, 256, "map/%c/%c/%s%s.png",
+	                               c1, c2, nato[c1 - 97], nato[c2 - 97]);
+	  cairo_surface_t *cst = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, 1920,
+	                                                                        1080);
+	  
+	  printf("cstat: %d\n", cairo_surface_status(cst));
+    cairo_t *cr = cairo_create(cst);
+    cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
+    cairo_paint(cr);
+    cairo_new_path(cr);
+    
+    cairo_set_source_rgba(cr, (double)colors26[c1 - 97].r / 255,
+     (double)colors26[c1 - 97].g / 255, (double)colors26[c1 - 97].b / 255, 1);
+    cairo_rectangle(cr, 0, 0, 1920/2, 1080);
+    cairo_fill(cr);
+    cairo_new_path(cr);
+    cairo_set_source_rgba(cr, (double)colors26[c2 - 97].r / 255,
+     (double)colors26[c2 - 97].g / 255, (double)colors26[c2 - 97].b / 255, 1);
+    cairo_rectangle(cr, 1920/2, 0, 1920/2, 1080);
+    cairo_fill(cr);
+    cairo_surface_flush(cst);
+    cairo_surface_write_to_png(cst, filename);
+    cairo_destroy(cr);
+    cairo_surface_destroy(cst);
+	}
+  printf("all set\n");
 	xcb_connection_t    *c;
   xcb_screen_t        *screen;
 
