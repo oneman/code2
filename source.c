@@ -374,7 +374,7 @@ int main(void) {
   if ((FD = memfd_create("pixmap-framebuffer", 0)) < 0) return 1;
   printf("mem FD\n");
   do { R = ftruncate(FD, SZ); } while (R < 0 && errno == EINTR);
-  printf("ftruncate 4294967296\n");
+  printf("ftruncate 4205260800\n");
 	DAT = mmap(NULL, SZ, PROT_READ | PROT_WRITE, MAP_SHARED, FD, 0);
 	printf("mmap DAT\n");
 	for (u64 i = 0; i < SZ; i++) { DAT[i] = 26; }
