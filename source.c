@@ -1,3 +1,4 @@
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 #include <xcb/xcb.h>
@@ -18,6 +19,7 @@
 #include <signal.h>
 #include <xkbcommon/xkbcommon.h>
 
+#include "source_wayland.c"
 
 typedef float f32;
 typedef double f64;
@@ -371,6 +373,9 @@ xcb_screen_t        *screen;
 
   /* Open the connection to the X server */
   c = xcb_connect (NULL, NULL);
+
+  if (xcb_connection_has_error(c)) { return wmain(0, NULL); }
+
   /* Get the first screen */
   screen = xcb_setup_roots_iterator (xcb_get_setup (c)).data;
 

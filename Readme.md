@@ -1,3 +1,3 @@
-## Download free copy
+## How to make and run this program
 
-Fun, cool hats.
+make && ./program
