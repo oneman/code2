@@ -19,7 +19,7 @@
 #include <signal.h>
 #include <xkbcommon/xkbcommon.h>
 
-#include "source_wayland.c"
+#include "header.h"
 
 typedef float f32;
 typedef double f64;
