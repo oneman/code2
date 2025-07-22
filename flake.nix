@@ -21,6 +21,7 @@
           buildInputs = [
             pkgs.clang
             pkgs.gmp
+            pkgs.wayland
             pkgs.cairo
             pkgs.xorg.libxcb
             pkgs.libxkbcommon
@@ -32,7 +33,7 @@
 
           installPhase = ''
             mkdir -p $out/bin
-            install -Dm755 ./program.exe $out/bin/program.exe
+            install -Dm755 ./program $out/bin/program
           '';
         };
 
@@ -40,6 +41,7 @@
           buildInputs = [
             pkgs.clang
             pkgs.gmp
+            pkgs.wayland
             pkgs.cairo
             pkgs.xorg.libxcb
             pkgs.pipewire
