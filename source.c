@@ -367,9 +367,20 @@ int oldmain(int argc, char *argv[]) {
 */
 
 int main(void) {
-
-xcb_connection_t    *c;
-xcb_screen_t        *screen;
+  int R;
+  int FD;
+  long SZ = 1026675 * PAGE_SZ;
+  char *DAT;
+  if ((FD = memfd_create("pixmap-framebuffer", 0)) < 0) return 1;
+  printf("mem FD\n");
+  do { R = ftruncate(FD, SZ); } while (R < 0 && errno == EINTR);
+  printf("ftruncate 4294967296\n");
+	DAT = mmap(NULL, SZ, PROT_READ | PROT_WRITE, MAP_SHARED, FD, 0);
+	printf("mmap DAT\n");
+	for (u64 i = 0; i < SZ; i++) { DAT[i] = 26; }
+	printf("all set\n");
+	xcb_connection_t    *c;
+  xcb_screen_t        *screen;
 
   /* Open the connection to the X server */
   c = xcb_connect (NULL, NULL);
