@@ -122,7 +122,7 @@ static char *nato[26] = {
   "quebec", "romeo", "sierra", "tango", "uniform", "victor", "whiskey", "xray",
   "yankee", "zulu"
 };
-
+/*
 static char *colorname[26] = {
   "amethyst", "blue", "caramel", "damnson", "ebony",
   "forest", "green", "honey", "iron", "jade",
@@ -140,7 +140,7 @@ static const pxl colors26[26] = {
   {225,255,102}, {16,10,255}, {153,0,0}, {255,255,129},{255,225,0},
   {255,80,0}
 };
-
+*/
 #define BIG_SZ 4210 * 2976 * 16
 
 typedef struct {
@@ -366,6 +366,46 @@ int oldmain(int argc, char *argv[]) {
 
 */
 
+/*
+int ethnet = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
+
+printf("sock fd be %d\n", ethnet);
+
+
+int backtrace(void *buffer[.size], int size);
+char **backtrace_symbols(void *const buffer[.size], int size);
+
+int timerfd_create(int clockid, int flags);
+int timerfd_settime(int fd, int flags,
+                    const struct itimerspec *new_value,
+		    struct itimerspec *_Nullable old_value);
+int timerfd_gettime(int fd, struct itimerspec *curr_value);
+
+int signalfd(int fd, const sigset_t *mask, int flags);
+
+int epoll_create1();
+int epoll_ctl(int epfd, int op, int fd, struct epoll_event *_Nullable event);
+int epoll_wait(int epfd, struct epoll_event events[.maxevents], int maxevents, int timeout);
+int efd = eventfd(2601, EFD_NONBLOCK);
+printf("efd %d cool lol\n", efd); 
+      printf("wtf %s\n\r", strerror(errno));
+*/
+
+void
+print_modifiers (uint32_t mask)
+{
+  const char **mod, *mods[] = {
+    "Shift", "Lock", "Ctrl", "Alt",
+    "Mod2", "Mod3", "Mod4", "Mod5",
+    "Button1", "Button2", "Button3", "Button4", "Button5"
+  };
+  printf ("Modifier mask: ");
+  for (mod = mods ; mask; mask >>= 1, mod++)
+    if (mask & 1)
+      printf(*mod);
+  putchar ('\n');
+}
+
 int main(void) {
   int R;
   int FD;
@@ -378,6 +418,7 @@ int main(void) {
 	DAT = mmap(NULL, SZ, PROT_READ | PROT_WRITE, MAP_SHARED, FD, 0);
 	printf("mmap DAT\n");
 	for (int i = 0; i < 676; i++) {
+	  continue;
 	  char c1 = 96 + 1 + (i / 26);
 	  char c2 = 96 + 1 + (i % 26);
 	  char filename[256];
@@ -427,7 +468,7 @@ int main(void) {
   c = xcb_connect (NULL, NULL);
 
   if (xcb_connection_has_error(c)) { return wmain(0, NULL); }
-
+  /*int XFD = xcb_get_file_descriptor(c);*/
   /* Get the first screen */
   screen = xcb_setup_roots_iterator (xcb_get_setup (c)).data;
 
@@ -497,11 +538,31 @@ xcb_point_t line_end;
 
   xcb_generic_event_t *e;
   int q = 0;
-  while ((e = xcb_wait_for_event (c))) {
-    if (q == 5) break;
-    switch (e->response_type & ~0x80) {
+  long unsigned int framenum = 0;
+  
+for(;;) {
 
+  usleep(16 * 1000); /* f'vsync this is Xorg */
+       xcb_poly_fill_rectangle_checked(c, pid, fill, 1, (xcb_rectangle_t[]){{ 0, 0, W, H}});
+      
+      /* clear win to reveal pixmap */
+      xcb_clear_area(c, 1, win, 0, 0, W, H);
+      
+      xcb_flush(c);
+  while ((e = xcb_poll_for_event(c))) {
+    //if (q == 5) break;
+    switch (e->response_type & ~0x80) {
+    case XCB_KEY_RELEASE: {
+          xcb_key_press_event_t *ev = (xcb_key_press_event_t *)e;
+      print_modifiers(ev->state);
+
+      printf ("Key %d released\n", ev->detail);
+    }
     case XCB_KEY_PRESS: {
+          xcb_key_press_event_t *ev = (xcb_key_press_event_t *)e;
+      print_modifiers(ev->state);
+
+      printf ("Key %d pressed\n", ev->detail);
       /* fill pixmap with white */
       /* why isn't this happening */
       xcb_poly_fill_rectangle_checked(c, pid, fill, 1, (xcb_rectangle_t[]){{ 0, 0, W, H}});
@@ -551,21 +612,21 @@ xcb_point_t line_end;
       break;
     }
     case XCB_EXPOSE: {
-      
+
+      printf("frame: %lu\n", framenum++);
       xcb_flush(c);
       break;
     }
     default: {
+    printf("response type %d\n", e->response_type);
       break;
     }
     }
     free (e);
   }
   
-
+}
 
   puts("bye!");
   return EXIT_SUCCESS;
 }
-
-
