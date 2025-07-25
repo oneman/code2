@@ -131,7 +131,7 @@ static char *colorname[26] = {
   "uranium", "version", "wine", "xanthin", "yellow",
   "zorange"
 };
-
+*/
 static const pxl colors26[26] = {
   {241,163,255}, {0,116,255}, {155,64,0}, {76,0,92}, {26,26,26},
   {0,92,48}, {42,207,72}, {255,205,153}, {126,126,126}, {149,255,181},
@@ -140,7 +140,7 @@ static const pxl colors26[26] = {
   {225,255,102}, {16,10,255}, {153,0,0}, {255,255,129},{255,225,0},
   {255,80,0}
 };
-*/
+
 #define BIG_SZ 4210 * 2976 * 16
 
 typedef struct {
@@ -418,12 +418,13 @@ int main(void) {
 	DAT = mmap(NULL, SZ, PROT_READ | PROT_WRITE, MAP_SHARED, FD, 0);
 	printf("mmap DAT\n");
 	for (int i = 0; i < 676; i++) {
-	  continue;
+	  /* continue; */
 	  char c1 = 96 + 1 + (i / 26);
 	  char c2 = 96 + 1 + (i % 26);
 	  char filename[256];
 	  snprintf(filename, 256, "map/%c/%c/%s%s.png",
 	                               c1, c2, nato[c1 - 97], nato[c2 - 97]);
+	  /*
 	  cairo_surface_t *cst = cairo_image_surface_create_from_png(filename);
 	  if (cairo_image_surface_get_width(cst) != 1920) exit(1);
     if (cairo_image_surface_get_height(cst) != 1080) exit(1);
@@ -435,7 +436,7 @@ int main(void) {
       DAT[px * 3 + 1] = dat[px * 4 + 1];
       DAT[px * 3 + 2] = dat[px * 4 + 2];
     }
-	  /*
+	  */
 	  cairo_surface_t *cst = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, 1920,
 	                                                                        1080);
 	  
@@ -447,20 +448,21 @@ int main(void) {
     
     cairo_set_source_rgba(cr, (double)colors26[c1 - 97].r / 255,
      (double)colors26[c1 - 97].g / 255, (double)colors26[c1 - 97].b / 255, 1);
-    cairo_rectangle(cr, 0, 0, 1920/2, 1080);
+    cairo_rectangle(cr, 0, 0, 1920, 540);
     cairo_fill(cr);
     cairo_new_path(cr);
     cairo_set_source_rgba(cr, (double)colors26[c2 - 97].r / 255,
      (double)colors26[c2 - 97].g / 255, (double)colors26[c2 - 97].b / 255, 1);
-    cairo_rectangle(cr, 1920/2, 0, 1920/2, 1080);
+    cairo_rectangle(cr, 0, 540, 1920, 540);
     cairo_fill(cr);
     cairo_surface_flush(cst);
     cairo_surface_write_to_png(cst, filename);
     cairo_destroy(cr);
     cairo_surface_destroy(cst);
-    */
+    
 	}
   printf("all set\n");
+  return 0;
 	xcb_connection_t    *c;
   xcb_screen_t        *screen;
 
