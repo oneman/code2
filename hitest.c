@@ -18,14 +18,14 @@ int main(int argc, char **argv) {
   struct hidraw_report_descriptor rpt_desc;
   struct hidraw_devinfo info;
   char device[16];
-  int device_num = 0;
+  int dnum = 0;
   for (;;) {
     memset(device, 0, 16);
-    snprintf(device, 16, "/dev/hidraw%d", device_num++);
+    snprintf(device, 16, "/dev/hidraw%d", dnum++);
     memset(&rpt_desc, 0x0, sizeof(rpt_desc));
     memset(&info, 0x0, sizeof(info));
     memset(buf, 0x0, sizeof(buf));
-    if ((fd = open(device, O_RDWR)) < 0) { break; }
+    if ((fd = open(device, O_RDWR)) < 0) { if (dnum > 126) exit(0); continue; }
     res = ioctl(fd, HIDIOCGRDESCSIZE, &desc_size);
 	if (res < 0)
 		perror("HIDIOCGRDESCSIZE");
