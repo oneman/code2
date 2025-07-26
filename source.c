@@ -131,7 +131,6 @@ static char *colorname[26] = {
   "uranium", "version", "wine", "xanthin", "yellow",
   "zorange"
 };
-*/
 static const pxl colors26[26] = {
   {241,163,255}, {0,116,255}, {155,64,0}, {76,0,92}, {26,26,26},
   {0,92,48}, {42,207,72}, {255,205,153}, {126,126,126}, {149,255,181},
@@ -140,7 +139,7 @@ static const pxl colors26[26] = {
   {225,255,102}, {16,10,255}, {153,0,0}, {255,255,129},{255,225,0},
   {255,80,0}
 };
-
+*/
 #define BIG_SZ 4210 * 2976 * 16
 
 typedef struct {
@@ -391,21 +390,6 @@ printf("efd %d cool lol\n", efd);
       printf("wtf %s\n\r", strerror(errno));
 */
 
-void
-print_modifiers (uint32_t mask)
-{
-  const char **mod, *mods[] = {
-    "Shift", "Lock", "Ctrl", "Alt",
-    "Mod2", "Mod3", "Mod4", "Mod5",
-    "Button1", "Button2", "Button3", "Button4", "Button5"
-  };
-  printf ("Modifier mask: ");
-  for (mod = mods ; mask; mask >>= 1, mod++)
-    if (mask & 1)
-      printf(*mod);
-  putchar ('\n');
-}
-
 int main(void) {
   int R;
   int FD;
@@ -417,29 +401,60 @@ int main(void) {
   printf("ftruncate 4205260800\n");
 	DAT = mmap(NULL, SZ, PROT_READ | PROT_WRITE, MAP_SHARED, FD, 0);
 	printf("mmap DAT\n");
-	for (int i = 0; i < 676; i++) {
+
+
+	for (unsigned long i = 0; i < 676; i++) {
+
+
 	  /* continue; */
 	  char c1 = 96 + 1 + (i / 26);
 	  char c2 = 96 + 1 + (i % 26);
 	  char filename[256];
 	  snprintf(filename, 256, "map/%c/%c/%s%s.png",
 	                               c1, c2, nato[c1 - 97], nato[c2 - 97]);
-	  /*
 	  cairo_surface_t *cst = cairo_image_surface_create_from_png(filename);
 	  if (cairo_image_surface_get_width(cst) != 1920) exit(1);
     if (cairo_image_surface_get_height(cst) != 1080) exit(1);
     if (cairo_image_surface_get_stride(cst) != 1920 * 4) exit(1);
-    //if (cairo_image_surface_get_format(cst) != CAIRO_FORMAT_ARGB32) exit(1);
-    unsigned char *dat = cairo_image_surface_get_data(cst);
-    for (int px = 0; px < 1920*1080; px++) {
-      DAT[px * 3] = dat[px * 4];
-      DAT[px * 3 + 1] = dat[px * 4 + 1];
-      DAT[px * 3 + 2] = dat[px * 4 + 2];
+    if (cairo_image_surface_get_format(cst) != CAIRO_FORMAT_RGB24) {
+      printf("not rite bro\n"); exit(1);
     }
-	  */
+    unsigned char *dat = cairo_image_surface_get_data(cst);
+    unsigned long x0 = (i % 26) * (1920*3);
+    /*y0 = (i / 26) * (161740800); (49920*3=149760) * 1080 < x 28080 */
+    //printf("%zu // 676 :: %zu :: %zu :: %zu\n", i + 1, x0, y0, x0 * y0);
+    printf("%zu :: %c %zu [%zu] :: %c %zu :: xof %zu pxyoff [[%zu]] %zu\n",
+		    i + 1,
+		    c1,
+		    ((i / 26) + 1),
+		    ((i / 26) + 0) * 161740800,
+		    c2,
+		    ((i % 26) + 1),
+		    (((i / 26) + 0) * 161740800) + x0,
+		    x0,
+		    (676 - (i + 1)));
+    //(4205260800/26/6220800
+    //(4205260800/26/(26*1920*3))
+    //161740800
+    //1026675 = 4205260800/4096
+    // (4205260800/149760) == 28080
+    int stride = 1920 * 26 * 3;
+    for (int yy = 0; yy < 1080; yy++) {
+      int pyy = yy * stride;
+      for (int xx = 0; xx < 1920; xx++) {
+        int pxy = pyy + (xx * 3);
+        DAT[pxy] = dat[(yy * 4) + (xx * 4)];
+        DAT[pxy + 1] = dat[(yy * 4) + (xx * 4) + 1];
+        DAT[pxy + 2] = dat[(yy * 4) + (xx * 4) + 2];
+        //DAT[(x0*y0) + pxy + (xx * 3) + 1] = dat[px * 4 + 1];
+        //DAT[(x0*y0) + pxy + (xx * 3) + 2] = dat[px * 4 + 2];
+      }
+    }
+    
+    cairo_surface_destroy(cst);
+	  /*
 	  cairo_surface_t *cst = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, 1920,
 	                                                                        1080);
-	  
 	  printf("cstat: %d\n", cairo_surface_status(cst));
     cairo_t *cr = cairo_create(cst);
     cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
@@ -459,8 +474,8 @@ int main(void) {
     cairo_surface_write_to_png(cst, filename);
     cairo_destroy(cr);
     cairo_surface_destroy(cst);
-    
-	}
+    */
+  }
   printf("all set\n");
   return 0;
 	xcb_connection_t    *c;
@@ -539,7 +554,6 @@ xcb_point_t line_end;
   xcb_flush(c);
 
   xcb_generic_event_t *e;
-  int q = 0;
   long unsigned int framenum = 0;
   
 for(;;) {
@@ -552,17 +566,14 @@ for(;;) {
       
       xcb_flush(c);
   while ((e = xcb_poll_for_event(c))) {
-    //if (q == 5) break;
     switch (e->response_type & ~0x80) {
     case XCB_KEY_RELEASE: {
           xcb_key_press_event_t *ev = (xcb_key_press_event_t *)e;
-      print_modifiers(ev->state);
 
       printf ("Key %d released\n", ev->detail);
     }
     case XCB_KEY_PRESS: {
           xcb_key_press_event_t *ev = (xcb_key_press_event_t *)e;
-      print_modifiers(ev->state);
 
       printf ("Key %d pressed\n", ev->detail);
       /* fill pixmap with white */
@@ -573,7 +584,6 @@ for(;;) {
       xcb_clear_area(c, 1, win, 0, 0, W, H);
       
       xcb_flush(c);
-      q++;
       break;
     }
 
