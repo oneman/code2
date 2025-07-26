@@ -49,6 +49,6 @@ int main(int argc, char **argv) {
 	else
 		printf("Raw Name: %s\n", buf);
     if (rpt_desc.value[3] == 2) { printf("its a mouse\n\n"); }
-    if (rpt_desc.value[3] == 7) { printf("its a keyboard\n\n"); }
+    if (rpt_desc.value[3] == 6) { printf("its a keyboard\n\n"); }
   }
 }
