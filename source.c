@@ -69,7 +69,7 @@ struct kr_monkey {
   int fd;
   void *user;
   kr_monkey_event_cb *event_cb;
-  kr_wayland_path_info *info;
+  kr_wayland_info *info;
   kr_loop *loop;
   kr_loop *master_loop;
 };
@@ -729,11 +729,11 @@ static int output_frame(kr_wayland_path *window, int num) {
 }
 
 static int request_frame(kr_wayland_path *window) {
-  int ret;
-  void *user;
+  int ret = 0;
   kr_frame *frame;
-  user = window->monkey_path->user;
+  /*void *user = window->monkey_path->user;*/
   frame = &window->frames[0];
+  if (!frame) exit(666);
   printk("Wayland: request frame");
   /* ret = window->monkey_path->write(user, (kr_av *)frame);  write()  *****/
   printk("Wayland: request frame wrote");
@@ -770,9 +770,10 @@ static int handle_frame(kr_av_event *event) {
 static int user_event(kr_event *event) {
   if (event == NULL) return -1;
   kr_wayland_path *window;
-  int ret;
-  kr_frame frame;
+  int ret = 0;
+  //kr_frame frame;
   window = (kr_wayland_path *)event->user;
+  if (!window) exit(666);
   printk("Wayland: user event");
   if (event->events & EPOLLIN) {
   
@@ -1003,7 +1004,7 @@ int kr_wl_unlink(kr_monkey_path *path) {
 }
 
 int window_input(void *u, kr_wayland_event *e) {
-  kr_wayland_path *win = u;
+  /*kr_wayland_path *win = u;*/
   switch (e->type) {
     case KR_WL_KEY:
       printk("Got key %d", e->key_event.key);
@@ -1033,7 +1034,7 @@ int kr_wl_link(kr_monkey *monkey, kr_monkey_path *path) {
   kw = (kr_wayland *)monkey->handle;
   /* FIXME make me better */
   if (kw->info->state != KR_WL_CONNECTED) return -3;
-  info = &path->info;
+  info = path->info;
   if ((info->width == 0) || (info->height == 0)
    || (info->width > 8192) || (info->height > 8192)) {
     printke("Wayland: window too big");
@@ -1049,7 +1050,7 @@ int kr_wl_link(kr_monkey *monkey, kr_monkey_path *path) {
   }
   window = &kw->window[i];
   window->wayland = kw;
-  window->info = &path->info;
+  window->info = path->info;
   window->user_callback = window_input;
   window->user = path->user;
   window->nframes = 0;
@@ -1169,7 +1170,7 @@ int kr_wl_open(kr_monkey *monkey) {
     monkey->loop = kr_loop_create(&loop_setup);
     kw = (kr_wayland *)monkey->handle;
     kw->monkey = monkey;
-    kw->info = &monkey->info;
+    kw->info = monkey->info;
     kw->info->state = KR_WL_DISCONNECTED;
     printk("Wayland: monkey opened");
   }
