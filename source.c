@@ -1,5 +1,23 @@
 #include "header.h"
 
+u64 mset(char *buf, const char b, u64 sz) {
+  u64 n = 0;
+  for (n = 0; n < sz; n++) buf[n] = b;
+  return sz;
+}
+
+u64 strsz(const char *str) { 
+  u64 n = 0;
+  for (n = 0; (str[n] != 0); n++);
+  return n;
+}
+
+u64 mcmp(const char *a, const char *b, u64 sz) {
+  u64 n = 0;
+  for (n = 0; n < sz; n++) { if (a[n] != b[n]) return n; }
+  return 0;
+}
+
 typedef enum {
   KR_WL_DISCONNECTED = 1,
   KR_WL_CONNECTED
@@ -27,8 +45,6 @@ int kr_wl_open(kr_monkey *);*/
 #define KR_WL_MAX_WINDOWS 4
 #define KR_WL_NFRAMES 2
 #define KR_WL_FIRST_FRAME_TIMEOUT_MS 2601
-
-#include "x.h"
 
 typedef struct kr_monkey kr_monkey;
 typedef struct kr_monkey_path kr_monkey_path;
@@ -62,16 +78,6 @@ struct kr_monkey_path {
   kr_wayland_path_info *info;
   int aux_fds[4];
   int naux_fds;
-};
-
-struct kr_monkey {
-  void *handle;
-  int fd;
-  void *user;
-  kr_monkey_event_cb *event_cb;
-  kr_wayland_info *info;
-  kr_loop *loop;
-  kr_loop *master_loop;
 };
 
 typedef struct kr_wayland kr_wayland;
@@ -161,6 +167,17 @@ struct kr_wayland {
   } xkb;
   kr_wayland_info *info;
   kr_monkey *monkey;
+};
+
+struct kr_monkey {
+  void *handle;
+  int fd;
+  void *user;
+  kr_monkey_event_cb *event_cb;
+  kr_wayland_info *info;
+  kr_loop *loop;
+  kr_loop *master_loop;
+  kr_wayland krwl;
 };
 
 static void handle_shm_format(void *data, struct wl_shm *wl_shm, uint32_t format);
@@ -1150,7 +1167,7 @@ int kr_wl_close(kr_monkey *monkey) {
   if (ret != 0) {
     printke("Wayland: trouble unlooping");
   }
-  free(kw);
+  //free(kw);
   monkey->handle = NULL;
   printk("Wayland: monkey Closed");
   return 0;
@@ -1164,7 +1181,9 @@ int kr_wl_open(kr_monkey *monkey) {
   if (monkey->handle) {
     printk("Wayland: monkey re-opened");
   } else {
-    monkey->handle = kr_allocz(1, sizeof(kr_wayland));
+    /*monkey->handle = kr_allocz(1, sizeof(kr_wayland));*/
+    mset(monkey->handle, 0, sizeof(monkey->krwl));
+    monkey->handle = &monkey->krwl;
     kr_loop_setup_init(&loop_setup);
     snprintf(loop_setup.name, sizeof(loop_setup.name), "kr_wayland");
     monkey->loop = kr_loop_create(&loop_setup);
@@ -1178,7 +1197,6 @@ int kr_wl_open(kr_monkey *monkey) {
   return 0;
 }
 
-
 int main(int argc, char **argv) {
   if (argc > 1) printf("%d retarded arguments.\n", argc - 1);
   int R;
@@ -1190,20 +1208,19 @@ int main(int argc, char **argv) {
   do { R = ftruncate(MFD, SZ); } while (R < 0 && errno == EINTR);
 	DAT = mmap(NULL, SZ, PROT_READ | PROT_WRITE, MAP_SHARED, MFD, 0);
 	if (!DAT) return 13*13;
-	printf("ya mmap DAT %p + 4205260800, nice!\n", DAT);
-
+	printf("mmap DAT %p + 4205260800, nice!\n", DAT);
 
   mpz_t n;
   mpz_init(n);
   mpz_clear(n);
   pw_init(&argc, &argv);
-  printf("Cairo: %s\n", cairo_version_string());
-  printf("GMP: %s\n", gmp_version);
-  printf("Pipewire %s/%s ", pw_get_headers_version(), pw_get_library_version());
-
-
-
-
+  printf("Cairo %s\n", cairo_version_string());
+  printf("GMP %s\n", gmp_version);
+  char *pw_hdr_ver = pw_get_headers_version();
+  const char *pw_lib_ver = pw_get_library_version();
+  if (strsz(pw_hdr_ver) != strsz(pw_lib_ver)) return 42;
+  if (mcmp(pw_hdr_ver, pw_lib_ver, strsz(pw_lib_ver))) return 666;
+  printf("Pipewire %s\n", pw_hdr_ver);
 
 
   /* *C */

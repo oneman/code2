@@ -1,0 +1,48 @@
+/*
+
+I like protocols.
+
+**
+
+DSHOT PROTOCOL
+
+Available modes: Dshot150, Dshot300, Dshot600, Dshot1200.
+The number is the bit rate in kHz.
+
+Frame Structure
+
+11 bit throttle: 2048 possible values. 0 is reserved for disarmed.
+1-47 are reserved for special commands.
+48-2047 (2000 steps) for the actual throttle value
+1 bit telemetry request - if this is set, telemetry data is sent back via a separate channel
+4 bit CRC: (Cyclic Redundancy) Check to validate data (throttle and telemetry request bit)
+
+Resulting in a frame with the following structure:
+
+SSSSSSSSSSSTCCCC (16 bits, MSB transmitted first)
+
+Pause (output low) between frames: 21 bits recommended, 2 minimum
+
+Bit Structure
+
+A bit period (6.667 us for Dshot150) is split in 8 equal parts. A zero-bit is encoded as 3H 5L, and a one-bit is encoded as 6H 2L.
+
+**
+
+MIDI PROTOCOL
+
+According to the MIDI protocol, MIDI devices communicate by sending each other
+MIDI messages. MIDI messages are sequences of bytes that tell receiving devices
+to do something. For example, the following sequence of three bytes is one
+possible message.
+
+0x90 0x26 0x3C
+
+The first byte is 0x90. The 9 tells the receiving device to play a note and 0
+specifies that the note should be on channel 0. The note is 0x26, which is the
+note D in the third or so octave from the bottom. The velocity (e.g., volume)
+with which the note should be played is 0x3C, which is about middle. Thus, this
+message tells the device to start playing the note D on channel 0 with medium
+volume.
+
+*/

@@ -2015,3 +2015,5 @@ int kr_image_pool_getimage(kr_image_pool *image_pool, kr_image *image) {
 int kr_image_pool_destroy(kr_image_pool *image_pool) {
   return kr_pool_destroy(image_pool);
 }
+
+#include "doc/x.h"
