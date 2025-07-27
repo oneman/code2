@@ -16,12 +16,12 @@ typedef struct {
   int fullscreen;
 } kr_wayland_path_info;
 
-int kr_wl_lctl(kr_adapter_path *, kr_patchset *);
-int kr_wl_unlink(kr_adapter_path *);
-int kr_wl_link(kr_adapter *, kr_adapter_path *);
-int kr_wl_ctl(kr_adapter *, kr_patchset *);
-int kr_wl_close(kr_adapter *);
-int kr_wl_open(kr_adapter *);
+/*int kr_wl_lctl(kr_monkey_path *, kr_patchset *);
+int kr_wl_unlink(kr_monkey_path *);
+int kr_wl_link(kr_monkey *, kr_monkey_path *);
+int kr_wl_ctl(kr_monkey *, kr_patchset *);
+int kr_wl_close(kr_monkey *);
+int kr_wl_open(kr_monkey *);*/
 
 
 #define KR_WL_MAX_WINDOWS 4
@@ -29,6 +29,50 @@ int kr_wl_open(kr_adapter *);
 #define KR_WL_FIRST_FRAME_TIMEOUT_MS 2601
 
 #include "x.h"
+
+typedef struct kr_monkey kr_monkey;
+typedef struct kr_monkey_path kr_monkey_path;
+
+typedef enum {
+  KR_monkey_PROCESS, /* Process all paths: jack,alsa,decklink */
+  KR_monkey_DISCONNECTED,
+  KR_monkey_RECONNECTED
+} kr_monkey_event_type;
+
+typedef struct {
+  kr_monkey *monkey;
+  void *user;
+  kr_monkey_event_type type;
+} kr_monkey_event;
+
+typedef void (kr_monkey_event_cb)(kr_monkey_event *);
+
+struct kr_monkey_path {
+  void *handle;
+  void *user;
+  int fd;
+
+/*  kr_avio *read;
+  kr_avio *write;*/
+  
+  void *read;
+  void *write;
+  
+  kr_av_handler *av_handler;
+  kr_wayland_path_info *info;
+  int aux_fds[4];
+  int naux_fds;
+};
+
+struct kr_monkey {
+  void *handle;
+  int fd;
+  void *user;
+  kr_monkey_event_cb *event_cb;
+  kr_wayland_path_info *info;
+  kr_loop *loop;
+  kr_loop *master_loop;
+};
 
 typedef struct kr_wayland kr_wayland;
 typedef struct kr_wayland_path kr_wayland_path;
@@ -85,7 +129,7 @@ struct kr_wayland_path {
   void *user;
   kr_wayland_path_info *info;
   kr_wayland *wayland;
-  kr_adapter_path *adapter_path;
+  kr_monkey_path *monkey_path;
 };
 
 struct kr_wayland {
@@ -116,7 +160,7 @@ struct kr_wayland {
     xkb_mod_mask_t shift_mask;
   } xkb;
   kr_wayland_info *info;
-  kr_adapter *adapter;
+  kr_monkey *monkey;
 };
 
 static void handle_shm_format(void *data, struct wl_shm *wl_shm, uint32_t format);
@@ -667,7 +711,7 @@ static int first_frame_timeout(kr_event *timeout) {
     printk("Wayland: No frame from compositor in %d ms", KR_WL_FIRST_FRAME_TIMEOUT_MS);
     output_frame(window, 1);
   }
-  ret = kr_loop_close(window->wayland->adapter->loop, timeout->fd);
+  ret = kr_loop_close(window->wayland->monkey->loop, timeout->fd);
   if (ret != 0) {
     printke("Wayland: problem closing first frame timerfd");
     return -1;
@@ -688,10 +732,10 @@ static int request_frame(kr_wayland_path *window) {
   int ret;
   void *user;
   kr_frame *frame;
-  user = window->adapter_path->user;
+  user = window->monkey_path->user;
   frame = &window->frames[0];
   printk("Wayland: request frame");
-  ret = window->adapter_path->write(user, (kr_av *)frame);
+  /* ret = window->monkey_path->write(user, (kr_av *)frame);  write()  *****/
   printk("Wayland: request frame wrote");
   if (ret != 1) {
     printke("Wayland: request frame write ret %d", ret);
@@ -731,7 +775,11 @@ static int user_event(kr_event *event) {
   window = (kr_wayland_path *)event->user;
   printk("Wayland: user event");
   if (event->events & EPOLLIN) {
-    ret = window->adapter_path->read(window->adapter_path->user, (kr_av *)&frame);
+  
+    /* read()read()read()read()*/
+  
+  
+    /*ret = window->monkey_path->read(window->monkey_path->user, (kr_av *)&frame);*/
     printk("Wayland: user event read ret %d", ret);
     if (ret != 1) {
       printke("Wayland: problem reading frame back");
@@ -806,9 +854,9 @@ static int handle_event(kr_event *fd_event) {
 static void handle_disconnect(kr_wayland *kw) {
   printk("Wayland: handle disconnect");
   kw->info->state = KR_WL_DISCONNECTED;
-  kr_loop_del(kw->adapter->loop, kw->fd);
+  kr_loop_del(kw->monkey->loop, kw->fd);
   kw->fd = -1;
-  kw->adapter->fd = -1;
+  kw->monkey->fd = -1;
   kw_teardown(kw);
 }
 
@@ -820,13 +868,13 @@ static void handle_connect(kr_wayland *kw) {
   kw->registry = wl_display_get_registry(kw->display);
   wl_registry_add_listener(kw->registry, &kw->registry_listener, kw);
   wl_display_roundtrip(kw->display);
-  kw->adapter->fd = kw->fd;
+  kw->monkey->fd = kw->fd;
   handle_out(kw);
   harness.user = kw;
   harness.fd = kw->fd;
   harness.handler = handle_event;
   harness.events = EPOLLIN;
-  kr_loop_add(kw->adapter->loop, &harness);
+  kr_loop_add(kw->monkey->loop, &harness);
 }
 
 static void kw_teardown(kr_wayland *kw) {
@@ -919,14 +967,14 @@ static void kw_init(kr_wayland *kw) {
   kw->registry_listener.global = handle_global;
 }
 
-int kr_wl_lctl(kr_adapter_path *path, kr_patchset *patchset) {
+int kr_wl_lctl(kr_monkey_path *path, kr_patchset *patchset) {
   if (path == NULL) return -1;
   if (patchset == NULL) return -2;
   printk("Wayland: window control");
   return 0;
 }
 
-int kr_wl_unlink(kr_adapter_path *path) {
+int kr_wl_unlink(kr_monkey_path *path) {
   int i;
   kr_wayland_path *window;
   kr_wayland *kw;
@@ -969,7 +1017,7 @@ int window_input(void *u, kr_wayland_event *e) {
   return 0;
 }
 
-int kr_wl_link(kr_adapter *adapter, kr_adapter_path *path) {
+int kr_wl_link(kr_monkey *monkey, kr_monkey_path *path) {
   printk("Wayland: new link");
   kr_wayland *kw;
   kr_wayland_path *window;
@@ -980,12 +1028,12 @@ int kr_wl_link(kr_adapter *adapter, kr_adapter_path *path) {
   kr_image *image;
   kr_event harness;
   int i;
-  if (adapter == NULL) return -1;
+  if (monkey == NULL) return -1;
   if (path == NULL) return -2;
-  kw = (kr_wayland *)adapter->handle;
+  kw = (kr_wayland *)monkey->handle;
   /* FIXME make me better */
   if (kw->info->state != KR_WL_CONNECTED) return -3;
-  info = &path->info->wl_out;
+  info = &path->info;
   if ((info->width == 0) || (info->height == 0)
    || (info->width > 8192) || (info->height > 8192)) {
     printke("Wayland: window too big");
@@ -1001,7 +1049,7 @@ int kr_wl_link(kr_adapter *adapter, kr_adapter_path *path) {
   }
   window = &kw->window[i];
   window->wayland = kw;
-  window->info = &path->info->wl_out;
+  window->info = &path->info;
   window->user_callback = window_input;
   window->user = path->user;
   window->nframes = 0;
@@ -1065,67 +1113,67 @@ int kr_wl_link(kr_adapter *adapter, kr_adapter_path *path) {
 
   window->active = 1;
   path->handle = window;
-  window->adapter_path = path;
+  window->monkey_path = path;
   harness.user = window;
   harness.fd = path->fd;
   harness.handler = user_event;
   harness.events = EPOLLIN;
   printk("Wayland: loop adding regular");
-  kr_loop_add(adapter->loop, &harness);
+  kr_loop_add(monkey->loop, &harness);
   printk("Wayland: loop adding timeout");
-  kr_loop_add_timeout(adapter->loop, KR_WL_FIRST_FRAME_TIMEOUT_MS,
+  kr_loop_add_timeout(monkey->loop, KR_WL_FIRST_FRAME_TIMEOUT_MS,
     first_frame_timeout, window);
   request_frame(window);
   printk("Wayland: Window created");
   return 0;
 }
 
-int kr_wl_ctl(kr_adapter *adp, kr_patchset *patchset) {
+int kr_wl_ctl(kr_monkey *adp, kr_patchset *patchset) {
   if (adp == NULL) return -1;
   if (patchset == NULL) return -2;
-  printk("Wayland: Adapter controlled");
+  printk("Wayland: monkey controlled");
   return 0;
 }
 
-int kr_wl_close(kr_adapter *adapter) {
+int kr_wl_close(kr_monkey *monkey) {
   kr_wayland *kw;
   int ret;
-  if (adapter == NULL) return -1;
-  printk("Wayland: Adapter Closing");
-  kw = (kr_wayland *)adapter->handle;
+  if (monkey == NULL) return -1;
+  printk("Wayland: monkey Closing");
+  kw = (kr_wayland *)monkey->handle;
   if (kw->display) {
     wl_display_flush(kw->display);
   }
   kw_teardown(kw);
-  ret = kr_loop_destroy(adapter->loop);
+  ret = kr_loop_destroy(monkey->loop);
   if (ret != 0) {
     printke("Wayland: trouble unlooping");
   }
   free(kw);
-  adapter->handle = NULL;
-  printk("Wayland: Adapter Closed");
+  monkey->handle = NULL;
+  printk("Wayland: monkey Closed");
   return 0;
 }
 
-int kr_wl_open(kr_adapter *adapter) {
-  if (adapter == NULL) return -1;
-  printk("Wayland: Adapter opening");
+int kr_wl_open(kr_monkey *monkey) {
+  if (monkey == NULL) return -1;
+  printk("Wayland: monkey opening");
   kr_wayland *kw;
   kr_loop_setup loop_setup;
-  if (adapter->handle) {
-    printk("Wayland: Adapter re-opened");
+  if (monkey->handle) {
+    printk("Wayland: monkey re-opened");
   } else {
-    adapter->handle = kr_allocz(1, sizeof(kr_wayland));
+    monkey->handle = kr_allocz(1, sizeof(kr_wayland));
     kr_loop_setup_init(&loop_setup);
     snprintf(loop_setup.name, sizeof(loop_setup.name), "kr_wayland");
-    adapter->loop = kr_loop_create(&loop_setup);
-    kw = (kr_wayland *)adapter->handle;
-    kw->adapter = adapter;
-    kw->info = &adapter->info->wl;
+    monkey->loop = kr_loop_create(&loop_setup);
+    kw = (kr_wayland *)monkey->handle;
+    kw->monkey = monkey;
+    kw->info = &monkey->info;
     kw->info->state = KR_WL_DISCONNECTED;
-    printk("Wayland: Adapter opened");
+    printk("Wayland: monkey opened");
   }
-  kw_connect((kr_wayland *)adapter->handle);
+  kw_connect((kr_wayland *)monkey->handle);
   return 0;
 }
 

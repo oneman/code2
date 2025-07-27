@@ -592,6 +592,7 @@ int popoff = 0;
     printf("not rite bro\n"); exit(1);
   }
   unsigned char *pngdat = cairo_image_surface_get_data(pngcst);
+  if (pngdat) printf("yay pngdat %p\n", pngdat);
 //  cairo_t *cr_png = cairo_create(pngcst);
     
   cairo_set_source_surface(cr, pngcst, 0, 0);
@@ -662,14 +663,9 @@ for(;;) {
         xcb_flush(c);
     }
     usleep(17 * 1000); /* f'vsync this is Xorg */
- 
- 
     randx = rand() % (1920*25);
     randy = rand() % (1080*25);
     printf("%d randy %d\n", randx, randy); 
-
- 
-    
     }
     
     cairo_surface_finish(surface);
@@ -730,3 +726,974 @@ cunt COMBYTESZ = COMBLITTERSZ / 8;
 #include <krad/app/debug.h>
 #include <krad/image/pool.h>
 #include <krad/image/convert.h>
+
+
+#if !defined(_mem_mem_H)
+# define _mem_mem_H (1)
+
+#include <stddef.h>
+
+#define KR_KB 1024
+#define KR_MB (1000 * KR_KB)
+
+/*#define KR_DEBUG_MEM 1*/
+
+#define member_sizeof(type, member) sizeof(((type *)0)->member)
+
+#define kr_amem(y, z) struct { uint8_t (y)[z];}__attribute__((aligned(8)));
+
+#if defined(KR_DEBUG_MEM)
+#include <krad/app/debug.h>
+#define KR_MEMALLOCSTR "Mem: alloc on %s %d"
+#define kr_alloc(x) kr_alloc_real(x); printk(KR_MEMALLOCSTR, __FILE__, __LINE__)
+#define KR_MEMALLOCZSTR "Mem: allocz on %s %d"
+#define kr_allocz(x, y) kr_allocz_real(x, y); printk(KR_MEMALLOCZSTR, __FILE__, __LINE__)
+#else
+#define kr_allocz kr_allocz_real
+#define kr_alloc kr_alloc_real
+#endif
+
+void kr_mem_debug(const char *type, size_t sz);
+void *kr_allocz_real(size_t nelem, size_t elsize);
+void *kr_alloc_real(size_t size);
+
+#endif
+
+#include <stdlib.h>
+#include <krad/app/debug.h>
+
+#if defined(KR_DEBUG_MEM)
+static size_t kr_mem_sz = 0;
+#endif
+
+void kr_mem_debug(const char *type, size_t sz) {
+#if defined(KR_DEBUG_MEM)
+  size_t total;
+  total = __atomic_add_fetch(&kr_mem_sz, sz, __ATOMIC_SEQ_CST);
+  if (sz < KR_KB) {
+    printk("Mem: %s %zu Bytes", type, sz);
+  } else if (sz < KR_MB) {
+    printk("Mem: %s %zu KB", type, sz / KR_KB);
+  } else {
+    printk("Mem: %s %zu MB", type, sz / KR_MB);
+  }
+  printk("Mem: total %zu MB", total / KR_MB);
+#endif
+}
+
+void *kr_allocz_real(size_t nelem, size_t elsize) {
+  kr_mem_debug("allocZ", nelem * elsize);
+  return calloc(nelem, elsize);
+}
+
+void *kr_alloc_real(size_t size) {
+  kr_mem_debug("alloc", size);
+  return malloc(size);
+}
+
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <errno.h>
+#include <signal.h>
+#include <sched.h>
+#include <sys/prctl.h>
+#include <sys/syscall.h>
+#include <sys/epoll.h>
+#include <sys/eventfd.h>
+#include <sys/timerfd.h>
+#include <sys/time.h>
+#include <pthread.h>
+#include <krad/app/debug.h>
+
+
+#include <sys/signalfd.h>
+#include <signal.h>
+#include <errno.h>
+#include <sys/epoll.h>
+
+#if !defined(_loop_loop_H)
+# define _loop_loop_H (1)
+
+#include <krad/system/priority.h>
+
+typedef struct kr_loop kr_loop;
+typedef struct kr_loop_setup kr_loop_setup;
+typedef struct kr_event kr_event;
+typedef struct kr_mainloop_setup kr_mainloop_setup;
+typedef int (kr_handler)(kr_event *);
+typedef int (kr_startup_handler)(kr_loop *, void *);
+typedef int (kr_shutdown_handler)(void *);
+
+struct kr_event {
+  int fd;
+  uint32_t events;
+  void *user;
+  kr_handler *handler;
+};
+
+typedef enum {
+  KR_SUPERLOOP,
+  KR_SUBLOOP
+} kr_loop_type;
+
+struct kr_loop_setup {
+  char name[16];
+  kr_priority priority;
+  kr_loop *master;
+};
+
+struct kr_mainloop_setup {
+  void *user;
+  kr_startup_handler *startup_handler;
+  kr_shutdown_handler *shutdown_handler;
+  kr_handler *signal_handler;
+};
+
+int kr_loop_del(kr_loop *loop, int fd);
+int kr_loop_close(kr_loop *loop, int fd);
+int kr_loop_mod(kr_loop *loop, kr_event *event);
+int kr_loop_add(kr_loop *loop, kr_event *event);
+int kr_loop_add_timeout(kr_loop *loop, int ms, kr_handler *handler, void *user);
+int kr_loop_destroy(kr_loop *loop);
+kr_loop *kr_loop_create(kr_loop_setup *setup);
+int kr_loop_setup_init(kr_loop_setup *setup);
+void kr_mainloop(kr_mainloop_setup *setup);
+
+#endif
+
+
+enum kr_loop_state {
+  KR_LOOP_START = 0,
+  KR_LOOP_LOOPING,
+  KR_LOOP_DONE
+};
+
+#define KR_LOOP_NEVENTS 64
+#define KR_LOOP_NHARNESSES 65536
+
+struct kr_loop {
+  pthread_t thread;
+  kr_priority priority;
+  kr_loop_type type;
+  int ed;
+  int pd;
+  int state;
+  char name[16];
+  kr_event watch[KR_LOOP_NHARNESSES];
+  kr_loop *master;
+};
+
+static int loop_destruct(kr_event *event) {
+  kr_loop *loop;
+  loop = (kr_loop *)event->user;
+  loop->state = KR_LOOP_DONE;
+  return 0;
+}
+
+static void loop_wait(kr_loop *loop, int ms) {
+  int n;
+  int i;
+  int ret;
+  int err;
+  kr_event *event;
+  struct epoll_event events[KR_LOOP_NEVENTS];
+  n = epoll_wait(loop->pd, events, KR_LOOP_NEVENTS, ms);
+  if (((ms == -1) && (n < 1)) || (n < 0)) {
+    err = errno;
+    printke("Loop: error on epoll wait %s", strerror(err));
+    /*
+    if (err == EINTR) continue;
+    break;
+    */
+    return;
+  }
+  for (i = 0; i < n; i++) {
+    event = (kr_event *)events[i].data.ptr;
+    event->events = events[i].events;
+    ret = event->handler(event);
+    if (ret == -1) {
+      loop->state = KR_LOOP_DONE;
+      break;
+    }
+  }
+}
+
+static int subloop_event(kr_event *event) {
+  kr_loop *loop;
+  loop = (kr_loop *)event->user;
+  loop_wait(loop, 0);
+  return 0;
+}
+
+static void loop_cycle(kr_loop *loop) {
+  while (loop->state == KR_LOOP_LOOPING) {
+    loop_wait(loop, -1);
+  }
+}
+
+static void *loop_thread(void *arg) {
+  int ret;
+  int err;
+  kr_loop *loop;
+  loop = (kr_loop *)arg;
+  loop->state = KR_LOOP_LOOPING;
+  ret = prctl(PR_SET_NAME, loop->name, NULL, NULL, NULL);
+  if (ret == -1) {
+    err = errno;
+    printke("Loop: prctl %s", strerror(err));
+  }
+  if (loop->priority > KR_PRIORITY_MIN && loop->priority <= KR_PRIORITY_MAX) {
+    ret = kr_priority_set(loop->priority);
+    if (ret) {
+      printke("Loop: setting priority");
+    }
+  }
+  printk("Loop: %s starting", loop->name);
+  loop_cycle(loop);
+  printk("Loop: %s exiting", loop->name);
+  loop->state = KR_LOOP_DONE;
+  return NULL;
+}
+
+int kr_loop_del(kr_loop *loop, int fd) {
+  int ret;
+  int err;
+  kr_event *watch;
+  if (loop == NULL) return -1;
+  if (fd < 0 || fd >= KR_LOOP_NHARNESSES) return -2;
+  watch = &loop->watch[fd];
+  if (watch == NULL) return -3;
+  ret = epoll_ctl(loop->pd, EPOLL_CTL_DEL, fd, NULL);
+  watch->fd = 0;
+  if (ret != 0) {
+    err = errno;
+    printke("Loop: epoll ctl del %s", strerror(err));
+    return -5;
+  }
+  return 0;
+}
+
+int kr_loop_close(kr_loop *loop, int fd) {
+  int ret;
+  ret = kr_loop_del(loop, fd);
+  if (ret != 0) return ret;
+  return close(fd);
+}
+
+int kr_loop_mod(kr_loop *loop, kr_event *event) {
+  int ret;
+  int err;
+  kr_event *watch;
+  struct epoll_event ev;
+  if (loop == NULL) return -1;
+  if (event == NULL) return -2;
+  if (event->fd < 0 || event->fd >= KR_LOOP_NHARNESSES) return -3;
+  watch = &loop->watch[event->fd];
+  if (watch == NULL) return -4;
+  *watch = *event;
+  memset(&ev, 0, sizeof(ev));
+  ev.events = watch->events;
+  ev.data.ptr = watch;
+  ret = epoll_ctl(loop->pd, EPOLL_CTL_MOD, watch->fd, &ev);
+  if (ret != 0) {
+    err = errno;
+    printke("Loop: epoll ctl mod %s", strerror(err));
+    return -5;
+  }
+  return 0;
+}
+
+int kr_loop_add(kr_loop *loop, kr_event *event) {
+  int ret;
+  struct epoll_event ev;
+  if (loop == NULL) return -1;
+  if (event == NULL) return -2;
+  if (event->fd < 0 || event->fd >= KR_LOOP_NHARNESSES) return -3;
+  if (event->handler == NULL) return -4;
+  if (loop->watch[event->fd].fd == 0) {
+    loop->watch[event->fd] = *event;
+    memset(&ev, 0, sizeof(ev));
+    ev.events = event->events;
+    ev.data.ptr = &loop->watch[event->fd];
+    ret = epoll_ctl(loop->pd, EPOLL_CTL_ADD, event->fd, &ev);
+    if (ret != 0) {
+      printke("Loop: epoll ctl add event fd to loop pd fail");
+      return -5;
+    }
+    return 0;
+  }
+  return -6;
+}
+
+int kr_loop_add_timeout(kr_loop *loop, int ms, kr_handler *handler,
+ void *user) {
+  int tfd;
+  int ret;
+  kr_event event;
+  struct itimerspec new_value;
+  time_t sec;
+  long nsec;
+  if (loop == NULL) return -1;
+  if (handler == NULL) return -2;
+  if (ms <= 0) return -3;
+  tfd = timerfd_create(CLOCK_MONOTONIC, TFD_NONBLOCK | TFD_CLOEXEC);
+  if (tfd < 0) {
+    printke("Loop: timerfd_create fail");
+    return -5;
+  }
+  memset(&new_value, 0, sizeof(new_value));
+  sec = ms / 1000;
+  nsec = (ms % 1000) * 1000000;
+  new_value.it_value.tv_sec = sec;
+  new_value.it_value.tv_nsec = nsec;
+  new_value.it_interval.tv_sec = sec;
+  new_value.it_interval.tv_nsec = nsec;
+  ret = timerfd_settime(tfd, 0, &new_value, NULL);
+  if (ret != 0) {
+    printke("Loop: timerfd settime fail");
+    close(tfd);
+    return -5;
+  }
+  memset(&event, 0, sizeof(event));
+  event.fd = tfd;
+  event.handler = handler;
+  event.user = user;
+  event.events = EPOLLIN;
+  ret = kr_loop_add(loop, &event);
+  if (ret != 0) {
+    close(tfd);
+    return ret;
+  }
+  return 0;
+}
+
+int kr_loop_destroy(kr_loop *loop) {
+  if (loop == NULL) return -1;
+  printk("Loop: destroy");
+  uint64_t u;
+  int s;
+  u = 666;
+  if (loop->type == KR_SUPERLOOP) {
+    s = write(loop->ed, &u, sizeof(uint64_t));
+    if (s != sizeof(uint64_t)) {
+      printk("Loop: error writing to loop ed");
+    }
+    pthread_join(loop->thread, NULL);
+  }
+  if (loop->type == KR_SUBLOOP) {
+    kr_loop_del(loop->master, loop->pd);
+  }
+  close(loop->ed);
+  close(loop->pd);
+  free(loop);
+  printk("Loop: destroyed");
+  return 0;
+}
+
+kr_loop *kr_loop_create(kr_loop_setup *setup) {
+  int ret;
+  kr_loop *loop;
+  kr_event harness;
+  if (setup == NULL) return NULL;
+  loop = calloc(1, sizeof(*loop));
+  memcpy(loop->name, setup->name, sizeof(loop->name));
+  loop->priority = setup->priority;
+  if (!setup->master) {
+    loop->type = KR_SUPERLOOP;
+  } else {
+    loop->type = KR_SUBLOOP;
+  }
+  loop->ed = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
+  if (loop->ed == -1) {
+    printke("Loop: efd evenfd created failed");
+    free(loop);
+    return NULL;
+  }
+  loop->pd = epoll_create1(EPOLL_CLOEXEC);
+  if (loop->pd == -1) {
+    printke("Loop: pd epoll created failed");
+    close(loop->ed);
+    free(loop);
+    return NULL;
+  }
+  harness.fd = loop->ed;
+  harness.user = loop;
+  harness.events = EPOLLIN;
+  harness.handler = loop_destruct;
+  ret = kr_loop_add(loop, &harness);
+  if ((ret == 0) && (loop->type == KR_SUPERLOOP)) {
+    pthread_create(&loop->thread, NULL, loop_thread, (void *)loop);
+  }
+  if ((ret != 0) || ((!loop->thread) && (loop->type == KR_SUPERLOOP))) {
+    printf("Thread launch Error: %s", strerror(errno));
+    close(loop->ed);
+    close(loop->pd);
+    free(loop);
+    return NULL;
+  }
+  if (loop->type == KR_SUBLOOP) {
+    loop->master = setup->master;
+    harness.fd = loop->pd;
+    harness.user = loop;
+    harness.events = EPOLLIN;
+    harness.handler = subloop_event;
+    ret = kr_loop_add(setup->master, &harness);
+    if (ret != 0) {
+      printke("Subloop: could not add to my master %d", ret);
+    }
+  }
+  return loop;
+}
+
+int kr_loop_setup_init(kr_loop_setup *setup) {
+  if (!setup) return -1;
+  memset(setup->name, 0, sizeof(setup->name));
+  setup->master = NULL;
+  setup->priority = KR_PRIORITY_NORMAL;
+  return 0;
+}
+
+static int mainloop_signal_setup() {
+  int sfd;
+  sigset_t mask;
+  sigemptyset(&mask);
+  sigfillset(&mask);
+  if (sigprocmask(SIG_BLOCK, &mask, NULL) != 0) {
+    fprintf(stderr, "Mainloop: Could not set signal mask!");
+    exit(1);
+  }
+  sfd = signalfd(-1, &mask, SFD_NONBLOCK | SFD_CLOEXEC);
+  if (sfd == -1) {
+    fprintf(stderr, "Mainloop: could not setup signalfd");
+    exit(1);
+  }
+  return sfd;
+}
+
+void kr_mainloop(kr_mainloop_setup *setup) {
+  int ret;
+  int sfd;
+  int fail;
+  kr_loop *loop;
+  kr_event signal_event;
+  if (setup == NULL) return;
+  fail = 0;
+  sfd = -1;
+  ret = 1;
+  loop = calloc(1, sizeof(*loop));
+  loop->pd = epoll_create1(EPOLL_CLOEXEC);
+  if (loop->pd == -1) {
+    printke("Loop: pd epoll created failed");
+    fail = 1;
+  }
+  if (!fail) {
+    sfd = mainloop_signal_setup();
+    ret = setup->startup_handler(loop, setup->user);
+    if (ret != 0) fail = 1;
+  }
+  if (!fail) {
+    signal_event.fd = sfd;
+    signal_event.events = EPOLLIN;
+    signal_event.user = setup->user;
+    signal_event.handler = setup->signal_handler;
+    kr_loop_add(loop, &signal_event);
+    loop->state = KR_LOOP_LOOPING;
+    loop_cycle(loop);
+    ret = setup->shutdown_handler(setup->user);
+  }
+  close(loop->pd);
+  close(sfd);
+  free(loop);
+  exit(ret);
+}
+
+#if !defined(_mem_pool_H)
+# define _mem_pool_H (1)
+
+#define KR_PAGESIZE 4096
+
+typedef struct kr_pool kr_pool;
+
+#include <inttypes.h>
+#include <stddef.h>
+
+typedef struct {
+  uint32_t slices;
+  size_t size;
+  int shared;
+  void *overlay;
+  size_t overlay_sz;
+} kr_pool_setup;
+
+int kr_pool_fd(kr_pool *pool);
+int kr_pool_size(kr_pool *pool);
+int kr_pool_slice_size(kr_pool *pool);
+int kr_pool_offsetof(kr_pool *pool, void *slice);
+void *kr_pool_iterate_active(kr_pool *pool, int *count);
+int kr_pool_slice_ref(kr_pool *pool, void *slice);
+int kr_pool_release(kr_pool *pool, void *slice);
+int kr_pool_atomic_release(kr_pool *pool, void *slice);
+void *kr_pool_atomic_slice(kr_pool *pool);
+void *kr_pool_slice(kr_pool *pool);
+void *kr_pool_slice_num(kr_pool *pool, int num);
+int kr_pool_avail(kr_pool *pool);
+int kr_pool_active(kr_pool *pool);
+int kr_pool_slices(kr_pool *pool);
+int kr_pool_overlay_get_copy(kr_pool *pool, void *overlay);
+void *kr_pool_overlay_get(kr_pool *pool);
+int kr_pool_overlay_set(kr_pool *pool, void *overlay);
+int kr_pool_destroy(kr_pool *pool);
+kr_pool *kr_pool_open(int fd, kr_pool_setup *setup);
+kr_pool *kr_pool_create(kr_pool_setup *setup);
+
+void kr_pool_debug(kr_pool *pool);
+
+#endif
+
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif
+
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <math.h>
+#include <inttypes.h>
+#include <stdbool.h>
+#include <sys/mman.h>
+#include <assert.h>
+#include <signal.h>
+/*#include <sys/memfd.h>*/
+#include <krad/app/spinlock.h>
+#include <krad/app/debug.h>
+
+
+
+#define KR_POOL_MAX 1048576
+#define KR_POOL_64 64
+#define CACHELINE_SZ KR_POOL_64
+#define MM __ATOMIC_SEQ_CST
+
+struct kr_pool {
+  uint64_t *use;
+  uint8_t *ref;
+  void *data;
+  uint32_t slices;
+  uint32_t active;
+  void *map;
+  void *overlay;
+  size_t slice_size;
+  size_t info_size;
+  size_t total_size;
+  size_t overlay_sz;
+  size_t overlay_actual_sz;
+  size_t internal_sz;
+  uint32_t use_max;
+  uint8_t shared;
+  int fd;
+  kr_spinlock lock;
+};
+
+static kr_pool *pool_map(int fd, kr_pool_setup *setup);
+
+int kr_pool_fd(kr_pool *pool) {
+  if (pool == NULL) return -1;
+  if (pool->shared != 1) return -1;
+  return pool->fd;
+}
+
+int kr_pool_size(kr_pool *pool) {
+  if (pool == NULL) return -1;
+  return pool->total_size;
+}
+
+int kr_pool_slice_size(kr_pool *pool) {
+  if (pool == NULL) return -1;
+  return pool->slice_size;
+}
+
+int kr_pool_offsetof(kr_pool *pool, void *slice) {
+  if (pool == NULL) return -1;
+  if (slice == NULL) return -1;
+  /* FIXME check that slice is in pool */
+  return slice - pool->map;
+}
+
+int kr_pool_avail(kr_pool *pool) {
+  if (pool == NULL) return -1;
+  return pool->slices - pool->active;
+}
+
+int kr_pool_active(kr_pool *pool) {
+  if (pool == NULL) return -1;
+  return pool->active;
+}
+
+int kr_pool_slices(kr_pool *pool) {
+  if (pool == NULL) return -1;
+  return pool->slices;
+}
+
+void *kr_pool_iterate_active(kr_pool *pool, int *count) {
+  uint64_t mask;
+  int n;
+  int i;
+  int iter;
+  if ((pool == NULL) || (count == NULL)) return NULL;
+  if ((*count < 0) || (*count >= pool->slices)) return NULL;
+  mask = 1;
+  i = 0;
+  iter = 0;
+  n = *count;
+  if (*count >= KR_POOL_64) {
+    i = *count / KR_POOL_64;
+    n = n % KR_POOL_64;
+  }
+  mask = mask << n;
+  while (*count < pool->slices) {
+    if ( (iter > 0) && ((*count % KR_POOL_64) == 0) ) {
+      mask = 1;
+      i++;
+    }
+    if ((pool->use[i] & mask) != 0) {
+      return pool->data + (pool->slice_size * (*count)++);
+    } else {
+      (*count)++;
+      mask = mask << 1;
+    }
+    iter++;
+  }
+  (*count) = 0;
+  return NULL;
+}
+
+void *kr_pool_slice_num(kr_pool *pool, int num) {
+  int i;
+  int n;
+  uint64_t mask;
+  if (pool == NULL) return NULL;
+  if ((num < 0) || (num >= pool->slices)) return NULL;
+  mask = 1;
+  i = 0;
+  n = num;
+  if (num >= KR_POOL_64) {
+    i = num / KR_POOL_64;
+    n = num % KR_POOL_64;
+  }
+  mask = mask << n;
+  if ((pool->use[i] & mask) != 0) {
+    return pool->data + (pool->slice_size * num);
+  } else {
+    pool->use[i] = pool->use[i] | mask;
+    pool->active++;
+    return pool->data + (pool->slice_size * num);
+  }
+}
+
+/*
+void *kr_pool_iterate_state(kr_pool *pool, int *count) {
+
+  return NULL;
+}
+
+void *kr_pool_iterate_type(kr_pool *pool, int *count) {
+
+  return NULL;
+}
+
+void *kr_pool_iterate_type_state(kr_pool *pool, int *count) {
+  return NULL;
+}
+*/
+
+void *kr_pool_overlay_get(kr_pool *pool) {
+  if (pool == NULL) return NULL;
+  if (pool->overlay == NULL) return NULL;
+  if (pool->overlay_sz == 0) return NULL;
+  return pool->overlay;
+}
+
+int kr_pool_overlay_set(kr_pool *pool, void *overlay) {
+  if (pool == NULL) return -1;
+  if (pool->overlay_sz == 0) return -2;
+  memcpy(pool->overlay, overlay, pool->overlay_sz);
+  return 0;
+}
+
+int kr_pool_overlay_get_copy(kr_pool *pool, void *overlay) {
+  if ((pool == NULL) || (overlay == NULL)) return -2;
+  if (pool->overlay == NULL) return -3;
+  memcpy(overlay, pool->overlay, pool->overlay_sz);
+  return pool->overlay_sz;
+}
+
+int kr_pool_release(kr_pool *pool, void *slice) {
+  uint64_t mask;
+  void *last;
+  int i;
+  size_t num;
+  if ((pool == NULL) || (slice == NULL)) return -2;
+  last = pool->data + (pool->slice_size * (pool->slices - 1));
+  if (slice < pool->data || slice > last) {
+   return -3;
+  }
+  kr_spin_lock(&pool->lock);
+  num = (slice - pool->data) / pool->slice_size;
+  i = 0;
+  if (num >= KR_POOL_64) {
+    i = num / KR_POOL_64;
+    num = num % KR_POOL_64;
+  }
+  mask = (uint64_t)1 << num;
+  if (((pool->use[i] & mask) != 0)) {
+      pool->use[i] = pool->use[i] ^ mask;
+      pool->active--;
+      kr_spin_unlock(&pool->lock);
+      return 0;
+  }
+  kr_spin_unlock(&pool->lock);
+  return -1;
+}
+
+int kr_pool_slice_ref(kr_pool *pool, void *slice) {
+  int i;
+  int j;
+  uint64_t mask;
+  if ((pool == NULL) || (slice == NULL)) return -2;
+  mask = 1;
+  for (i = j = 0; i < pool->slices; i++) {
+    if ( (i > 0) && ((i % KR_POOL_64) == 0)) {
+      mask = 1;
+      j++;
+    }
+    if (((pool->use[j] & mask) != 0)
+        && (slice == (pool->data + (pool->slice_size * i)))) {
+      pool->ref[i]++;
+      return pool->ref[i];
+    }
+    mask = mask << 1;
+  }
+  return -1;
+}
+
+int kr_pool_atomic_release(kr_pool *pool, void *slice) {
+  uint64_t mask;
+  int i;
+  size_t num;
+  if ((pool == NULL) || (slice == NULL)) return -2;
+  num = (slice - pool->data) / pool->slice_size;
+  i = 0;
+  if (num >= KR_POOL_64) {
+    i = num / KR_POOL_64;
+    num = num % KR_POOL_64;
+  }
+  mask = (uint64_t)1 << num;
+  __atomic_xor_fetch(&pool->use[i], mask, MM);
+  __atomic_sub_fetch(&pool->active, 1, MM);
+  return 0;
+}
+
+void *kr_pool_atomic_slice(kr_pool *pool) {
+  int i;
+  int j;
+  int ix;
+  int len;
+  uint64_t use;
+  uint64_t new;
+  uint64_t mask;
+  if (pool == NULL) return NULL;
+  for (i = 0; i < pool->slices; i += 64) {
+    mask = 1;
+    len = 64;
+    if ((i + len) > pool->slices) len = pool->slices - i;
+    ix = i / 64;
+    __atomic_load(&pool->use[ix], &use, MM);
+    for (j = 0; j < len; j++) {
+      if ((use & mask) == 0) {
+        new = use | mask;
+        if (__atomic_compare_exchange(&pool->use[ix], &use, &new, 0, MM, MM)) {
+          __atomic_add_fetch(&pool->active, 1, MM);
+          return pool->data + (pool->slice_size * (i + j));
+        } else {
+          i -= 64;
+          break;
+        }
+      }
+      mask = mask << 1;
+    }
+  }
+  return NULL;
+}
+
+void *kr_pool_slice(kr_pool *pool) {
+  int i;
+  int j;
+  uint64_t mask;
+  if (pool == NULL) return NULL;
+  mask = 1;
+  kr_spin_lock(&pool->lock);
+  for (i = j = 0; i < pool->slices; i++) {
+    if ( (i > 0) && ((i % KR_POOL_64) == 0)) {
+      mask = 1;
+      j++;
+    }
+    if ((pool->use[j] & mask) == 0) {
+      pool->use[j] = pool->use[j] | mask;
+      pool->active++;
+      kr_spin_unlock(&pool->lock);
+      return pool->data + (pool->slice_size * i);
+    }
+    mask = mask << 1;
+  }
+  kr_spin_unlock(&pool->lock);
+  return NULL;
+}
+
+void kr_pool_debug(kr_pool *pool) {
+  int i;
+  if (pool == NULL) return;
+  printk("\npool info");
+  printk("pool slices: %d", kr_pool_slices(pool));
+  printk("pool active: %d", kr_pool_active(pool));
+  printk("pool avail: %d", kr_pool_avail(pool));
+  printk("pool use_max: %d", pool->use_max);
+  if (pool->use_max > 1) {
+    for (i = 0; i < pool->use_max; i++) {
+      if (pool->use[i])
+        printk("pool use[%d]: %"PRIu64"", i, pool->use[i]);
+    }
+  } else {
+    printk("pool use[0]: %"PRIu64"", pool->use[0]);
+  }
+  printk("pool info size: %zu", sizeof(kr_pool));
+  printk("pool info act size: %zu", pool->info_size);
+  printk("pool overlay size: %zu", pool->overlay_sz);
+  printk("pool overlay act size: %zu", pool->overlay_actual_sz);
+  printk("pool slice size: %zu", pool->slice_size);
+  printk("pool slices size: %zu", pool->slice_size * pool->slices);
+  printk("pool internal size: %zu", pool->internal_sz);
+  printk("pool total size: %zu\n", pool->total_size);
+}
+
+int kr_pool_destroy(kr_pool *pool) {
+  int ret;
+  if (pool == NULL) return -1;
+  /*kr_pool_debug(pool);*/
+  if (pool->shared == 1) {
+    close(pool->fd);
+  }
+  ret = munlock(pool->map, pool->total_size);
+  if (ret) printke("Pool munlock: ret %d", ret);
+  ret = munmap(pool->map, pool->total_size);
+  if (ret) printke("Pool destroy: ret %d", ret);
+  return ret;
+}
+
+static kr_pool *pool_map(int fd, kr_pool_setup *setup) {
+  char filename[] = "/tmp/krad-shm-XXXXXX";
+  static const int prot = PROT_READ | PROT_WRITE;
+  int flags;
+  int mod;
+  int ret;
+  kr_pool pool;
+  if (setup == NULL) return NULL;
+  if (setup->slices == 0) return NULL;
+  if (setup->slices > KR_POOL_MAX) return NULL;
+  if (setup->size == 0) return NULL;
+  memset(&pool, 0, sizeof(kr_pool));
+  pool.overlay_sz = setup->overlay_sz;
+  pool.overlay_actual_sz = pool.overlay_sz;
+  pool.info_size = sizeof(kr_pool);
+  mod = pool.info_size % CACHELINE_SZ;
+  if (mod) {
+    pool.info_size += CACHELINE_SZ - mod;
+  }
+  mod = pool.overlay_sz % CACHELINE_SZ;
+  if (mod) {
+    pool.overlay_actual_sz += CACHELINE_SZ - mod;
+  }
+  pool.slices = setup->slices;
+  pool.slice_size = setup->size;
+  mod = pool.slice_size % CACHELINE_SZ;
+  if (mod) {
+    pool.slice_size += CACHELINE_SZ - mod;
+  }
+  pool.use_max = (1 + ( (pool.slices - 1) / KR_POOL_64));
+  pool.internal_sz = sizeof(uint64_t) * pool.use_max;
+  pool.internal_sz += sizeof(uint8_t) * pool.slices;
+  mod = pool.internal_sz % CACHELINE_SZ;
+  if (mod) {
+    pool.internal_sz += CACHELINE_SZ - mod;
+  }
+  pool.total_size = (pool.slices * pool.slice_size);
+  pool.total_size += pool.info_size;
+  pool.total_size += pool.overlay_actual_sz;
+  pool.total_size += pool.internal_sz;
+  mod = pool.total_size % KR_PAGESIZE;
+  if (mod) {
+    pool.total_size += KR_PAGESIZE - mod;
+  }
+  if (!setup->shared) {
+    pool.shared = 0;
+    pool.fd = -1;
+    flags = MAP_PRIVATE | MAP_ANONYMOUS;
+  } else {
+    pool.shared = 1;
+    flags = MAP_SHARED;
+    if (fd != -1) {
+      pool.fd = fd;
+    } else {
+      if (0) {
+        /*pool.fd = memfd_create("kr_pool", MFD_CLOEXEC | MFD_ALLOW_SEALING);*/
+      } else {
+        pool.fd = mkostemp(filename, O_CLOEXEC);
+        if (pool.fd < 0) {
+          printke("Pool: open %s failed: %m\n", filename);
+          return NULL;
+        }
+        unlink(filename);
+      }
+    }
+    if (ftruncate(pool.fd, pool.total_size) < 0) {
+      printke("ftruncate failed: %m\n");
+      close(pool.fd);
+      return NULL;
+    }
+  }
+  pool.map = mmap(NULL, pool.total_size, prot, flags, pool.fd, 0);
+  if (pool.map == MAP_FAILED) {
+    printke("Pool: mmap");
+    if (pool.shared) close(pool.fd);
+    return NULL;
+  }
+  ret = mlock(pool.map, pool.total_size);
+  if (ret) printke("Pool mlock: %s", strerror(ret));
+  kr_mem_debug("pool", pool.total_size);
+  pool.data = pool.map + pool.internal_sz;
+  pool.data += (pool.info_size + pool.overlay_actual_sz);
+  if (pool.overlay_sz != 0) {
+    pool.overlay = pool.map + pool.internal_sz + pool.info_size;
+    if (setup->overlay != NULL) {
+      kr_pool_overlay_set(&pool, setup->overlay);
+    }
+  }
+  pool.use = pool.map;
+  pool.ref = pool.map + ( sizeof(uint64_t) * pool.slices );
+  memcpy(pool.map + pool.internal_sz, &pool, sizeof(kr_pool));
+  return (kr_pool *)(pool.map + pool.internal_sz);
+}
+
+kr_pool *kr_pool_open(int fd, kr_pool_setup *setup) {
+  if (fd < 0 || setup->shared != 1) return NULL;
+  return pool_map(fd, setup);
+}
+
+kr_pool *kr_pool_create(kr_pool_setup *setup) {
+  return pool_map(-1, setup);
+}
+
