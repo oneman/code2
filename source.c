@@ -1197,6 +1197,8 @@ int kr_wl_open(kr_monkey *monkey) {
   return 0;
 }
 
+#define ASZ 4205260800
+
 int main(int argc, char **argv) {
   if (argc > 1) printf("%d retarded arguments.\n", argc - 1);
   int R;
@@ -1210,17 +1212,48 @@ int main(int argc, char **argv) {
 	if (!DAT) return 13*13;
 	printf("mmap DAT %p + 4205260800, nice!\n", DAT);
 
-  mpz_t n;
-  mpz_init(n);
-  mpz_clear(n);
-  pw_init(&argc, &argv);
-  printf("Cairo %s\n", cairo_version_string());
   printf("GMP %s\n", gmp_version);
+  printf("Cairo %s\n", cairo_version_string());
+
+  pw_init(&argc, &argv);
   char *pw_hdr_ver = pw_get_headers_version();
   const char *pw_lib_ver = pw_get_library_version();
   if (strsz(pw_hdr_ver) != strsz(pw_lib_ver)) return 42;
   if (mcmp(pw_hdr_ver, pw_lib_ver, strsz(pw_lib_ver))) return 666;
   printf("Pipewire %s\n", pw_hdr_ver);
+
+  printf("Help World!\n");
+
+  mpz_t a, b, c, ap, p, r, x;
+
+  mpz_init_set_ui(b, 0);
+  mpz_init_set_ui(c, 0);
+  mpz_init_set_ui(r, 0);
+  mpz_init_set_str(a, "4205260800", 10);
+  mpz_init_set_str(ap, "4205260799", 10);
+  mpz_init_set_str(p, "57896044618658097711785492504343953926634992332820282019728792003956564819949", 10);
+  mpz_mod(r, p, a);
+  gmp_printf("%Zd\n", p);
+  
+  mpz_init_set_str(x, "18446744073709551616", 10);
+  mpz_mod(r, p, x);
+  gmp_printf("%Zd\n", r);
+
+  mpz_t e;
+  mpz_init(e);
+  mpz_fac_ui(e, 26);
+  gmp_printf("26!\n%Zd\n", e);
+
+  mpz_t f;
+  mpz_init(f);
+  mpz_fac_ui(f, 126);
+  gmp_printf("126!\n%Zd\n", f);
+  
+  mpz_t g;
+  mpz_init(g);
+  mpz_fac_ui(g, 209);
+  gmp_printf("209!\n%Zd\n", g);
+  
 
 
   /* *C */
