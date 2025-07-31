@@ -21,10 +21,7 @@
           buildInputs = [
             pkgs.clang
             pkgs.gmp
-            pkgs.wayland
             pkgs.cairo
-            pkgs.xorg.libxcb
-            pkgs.libxkbcommon
             pkgs.pipewire
             pkgs.pkg-config
           ];
@@ -41,12 +38,9 @@
           buildInputs = [
             pkgs.clang
             pkgs.gmp
-            pkgs.wayland
             pkgs.cairo
-            pkgs.xorg.libxcb
             pkgs.pipewire
             pkgs.pkg-config
-            pkgs.libxkbcommon
           ];
         };
       });

@@ -1,6 +1,8 @@
 #ifndef C_TEXT
 #define C_TEXT
 
+#include "metastructure.c"
+
 /* If the return value == the sz passed in, this buffer is valid utf8 */
 /* to be specific the sz passed in and the value returned are the number
  * of bytes not the number of utf8 encoded unicode characters */
@@ -122,22 +124,22 @@ int is_unicode_tail(u8 byte) {
 int is_unicode_neckbeard(u8 head, u8 neck) {
   if (head == 224) {
     if ((neck >= 160) && (neck <= 191)) return 1;
-    printk("unicode neckbeard error!");
+    printf("unicode neckbeard error!");
     return 0;
   }
   if (head == 237) {
     if ((neck >= 128) && (neck <= 159)) return 1;
-    printk("unicode neckbeard error!");
+    printf("unicode neckbeard error!");
     return 0;
   }
   if (head == 240) {
     if ((neck >= 144) && (neck <= 191)) return 1;
-    printk("unicode neckbeard error!");
+    printf("unicode neckbeard error!");
     return 0;
   }
   if (head == 244) {
     if ((neck >= 128) && (neck <= 143)) return 1;
-    printk("unicode neckbeard error!");
+    printf("unicode neckbeard error!");
     return 0;
   }
   return is_unicode_tail(neck);
@@ -193,7 +195,7 @@ u64 sentence_len(u8 *buf, u64 sz) {
     len = term_len(buf + n, sz - n);
     if (len == 0) exit(1);
     if (len == TERM_MAX) exit(1);
-    printf("%.*s ", len, buf + n);
+    printf("%.*s ", (int)len, buf + n);
     n += len;
     len = blank_len(buf + n, sz - n);
     if (len == 0) return n;
@@ -471,7 +473,7 @@ u64 text_len(u8 *buf, u64 sz) {
 u64 text_scan(u8 *buf, u64 sz) {
   if ((!buf) || (sz < 4)) exit(1);
   if (sz == 4) {
-    printf("FourCC: %.*s\n", sz, buf);
+    printf("FourCC: %.*s\n", (int)sz, buf);
     return 0;
   }
   printf("Text, %lu bytes\n", sz);

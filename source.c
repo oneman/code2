@@ -6,7 +6,7 @@ u64 mset(char *buf, const char b, u64 sz) {
   return sz;
 }
 
-u64 strsz(const char *str) { 
+u64 strsz(const char *str) {
   u64 n = 0;
   for (n = 0; (str[n] != 0); n++);
   return n;
@@ -19,6 +19,8 @@ u64 mcmp(const char *a, const char *b, u64 sz) {
 }
 
 #define ASZ 4205260800
+
+#include "/demo/code2/doc/.cnake/text.c"
 
 int dmain(int argc, char **argv) {
   if (argc > 1) printf("%d retarded arguments.\n", argc - 1);
@@ -479,6 +481,7 @@ static void modeset_destroy_fb(int fd, struct modeset_buf *buf)
 
 int main(int argc, char **argv)
 {
+  return dmain(argc, argv);
 	int ret, fd;
 	const char *card;
 	struct modeset_dev *iter;
@@ -710,7 +713,7 @@ static uint8_t next_color(bool *up, uint8_t cur, unsigned int mod)
 static void modeset_draw_dev(int fd, struct modeset_dev *dev)
 {
 	struct modeset_buf *buf;
-	unsigned int j, k, off;
+	/*unsigned int j, k, off;*/
 	int ret;
 
 	dev->r = next_color(&dev->r_up, dev->r, 26);
@@ -718,13 +721,8 @@ static void modeset_draw_dev(int fd, struct modeset_dev *dev)
 	dev->b = next_color(&dev->b_up, dev->b, 26);
 
 	buf = &dev->bufs[dev->front_buf ^ 1];
-	for (j = 0; j < buf->height; ++j) {
-		for (k = 0; k < buf->width; ++k) {
-			off = buf->stride * j + k * 4;
-			*(uint32_t*)&buf->map[off] =
-				     (dev->r << 16) | (dev->g << 8) | dev->b;
-		}
-	}
+	
+	printf("lol\n");
 
 	ret = drmModePageFlip(fd, dev->crtc, buf->fb,
 			      DRM_MODE_PAGE_FLIP_EVENT, dev);
