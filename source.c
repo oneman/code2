@@ -1,26 +1,6 @@
 #include "header.h"
 
-u64 mset(char *buf, const char b, u64 sz) {
-  u64 n = 0;
-  for (n = 0; n < sz; n++) buf[n] = b;
-  return sz;
-}
-
-u64 strsz(const char *str) {
-  u64 n = 0;
-  for (n = 0; (str[n] != 0); n++);
-  return n;
-}
-
-u64 mcmp(const char *a, const char *b, u64 sz) {
-  u64 n = 0;
-  for (n = 0; n < sz; n++) { if (a[n] != b[n]) return n; }
-  return 0;
-}
-
 #define ASZ 4205260800
-
-#include "/demo/code2/doc/.cnake/text.c"
 
 int dmain(int argc, char **argv) {
   if (argc > 1) printf("%d retarded arguments.\n", argc - 1);

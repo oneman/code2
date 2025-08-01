@@ -1,8 +1,6 @@
-#include <stdio.h>
-#include "/demo/code2/doc/.cnake/text.c"
+#include "header.h"
 
 int main(int argc, char **argv) {
-  int ret = 0;
-
-  return ret;
+  int HALT = 1000000;
+  return HALT;
 }

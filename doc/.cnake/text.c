@@ -124,22 +124,22 @@ int is_unicode_tail(u8 byte) {
 int is_unicode_neckbeard(u8 head, u8 neck) {
   if (head == 224) {
     if ((neck >= 160) && (neck <= 191)) return 1;
-    printf("unicode neckbeard error!");
+    //printf("unicode neckbeard error!");
     return 0;
   }
   if (head == 237) {
     if ((neck >= 128) && (neck <= 159)) return 1;
-    printf("unicode neckbeard error!");
+    //printf("unicode neckbeard error!");
     return 0;
   }
   if (head == 240) {
     if ((neck >= 144) && (neck <= 191)) return 1;
-    printf("unicode neckbeard error!");
+    //printf("unicode neckbeard error!");
     return 0;
   }
   if (head == 244) {
     if ((neck >= 128) && (neck <= 143)) return 1;
-    printf("unicode neckbeard error!");
+    //printf("unicode neckbeard error!");
     return 0;
   }
   return is_unicode_tail(neck);

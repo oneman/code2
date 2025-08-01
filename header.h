@@ -23,6 +23,30 @@
 #include <stdlib.h>
 #include <sys/time.h>
 
+#include <sys/random.h>
+
+#include <krad/system/types.h>
+
+#include "/demo/code2/doc/.cnake/text.c"
+
+u64 mset(char *buf, const char b, u64 sz) {
+  u64 n = 0;
+  for (n = 0; n < sz; n++) buf[n] = b;
+  return sz;
+}
+
+u64 strsz(const char *str) {
+  u64 n = 0;
+  for (n = 0; (str[n] != 0); n++);
+  return n;
+}
+
+u64 mcmp(const char *a, const char *b, u64 sz) {
+  u64 n = 0;
+  for (n = 0; n < sz; n++) { if (a[n] != b[n]) return n; }
+  return 0;
+}
+
 #if !defined(_app_spinlock_H)
 # define _app_spinlock_H (1)
 
@@ -50,8 +74,6 @@ void kr_spin_unlock(kr_spinlock *lock) {
 
 #if !defined(_system_priority_H)
 #define _system_priority_H (1)
-
-#include <krad/system/types.h>
 
 int kr_priority_set(kr_priority priortiy);
 
