@@ -37,31 +37,14 @@ enum kms_bo_type {
 struct kms_driver {
   int (*get_prop)(struct kms_driver *kms, const unsigned key, unsigned *out);
   int (*destroy)(struct kms_driver *kms);
-  int (*bo_create)(struct kms_driver *kms,
-  unsigned width,
-  unsigned height,
-  enum kms_bo_type type,
-  const unsigned *attr,
-  struct kms_bo **out);
+  int (*bo_create)(struct kms_driver *kms, unsigned width, unsigned height,
+    enum kms_bo_type type, const unsigned *attr, struct kms_bo **out);
   int (*bo_get_prop)(struct kms_bo *bo, const unsigned key, unsigned *out);
   int (*bo_map)(struct kms_bo *bo, void **out);
   int (*bo_unmap)(struct kms_bo *bo);
   int (*bo_destroy)(struct kms_bo *bo);
   int fd;
 };
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
-#include <termios.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <math.h>
-#include <xf86drm.h>
-#include <xf86drmMode.h>
 
 int kms_create(int fd, struct kms_driver **out);
 int kms_get_prop(struct kms_driver *kms, unsigned key, unsigned *out);
@@ -131,27 +114,9 @@ static inline int drm_munmap(void *addr, size_t length)
 }
 #endif
 #endif
-#include <errno.h>
-#include <stdlib.h>
-#include <string.h>
-
-#include <errno.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <xf86drm.h>
-#include <string.h>
-#include <unistd.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-
-#include <sys/sysmacros.h>
-
-
 
 #define PATH_SIZE 512
-static int
-linux_name_from_sysfs(int fd, char **out)
-{
+static int linux_name_from_sysfs(int fd, char **out) {
 	char path[PATH_SIZE+1] = ""; /* initialize to please valgrind */
 	char link[PATH_SIZE+1] = "";
 	struct stat buffer;
@@ -187,9 +152,8 @@ linux_name_from_sysfs(int fd, char **out)
 	*out = strdup(slash_name + 1);
 	return 0;
 }
-static int
-linux_from_sysfs(int fd, struct kms_driver **out)
-{
+
+static int linux_from_sysfs(int fd, struct kms_driver **out) {
 	char *name;
 	int ret;
 	ret = linux_name_from_sysfs(fd, &name);
@@ -224,18 +188,17 @@ linux_from_sysfs(int fd, struct kms_driver **out)
 	free(name);
 	return ret;
 }
-drm_private int
-linux_create(int fd, struct kms_driver **out)
-{
+
+drm_private int linux_create(int fd, struct kms_driver **out) {
 	if (!dumb_create(fd, out))
 		return 0;
 	return linux_from_sysfs(fd, out);
 }
   
-drm_public int kms_create(int fd, struct kms_driver **out)
-{
+drm_public int kms_create(int fd, struct kms_driver **out) {
 	return linux_create(fd, out);
 }
+
 drm_public int kms_get_prop(struct kms_driver *kms, unsigned key, unsigned *out)
 {
 	switch (key) {
@@ -326,15 +289,6 @@ drm_private int dumb_create(int fd, struct kms_driver **out);
 drm_private int nouveau_create(int fd, struct kms_driver **out);
 drm_private int radeon_create(int fd, struct kms_driver **out);
 drm_private int exynos_create(int fd, struct kms_driver **out);
-
-
-#include <errno.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
-#include <sys/ioctl.h>
-#include "xf86drm.h"
 
 struct dumb_bo
 {
@@ -660,12 +614,12 @@ int main(int argc, char *argv[]) {
 	DAT = mmap(NULL, SZ, PROT_READ | PROT_WRITE, MAP_SHARED, MFD, 0);
 	if (!DAT) return 13*13;
 
-  int EFD = epoll_create1(0);
-  int ED = eventfd(2601, EFD_NONBLOCK);
+  int EFD = epoll_create1(EPOLL_CLOEXEC);
+  int ED = eventfd(2601, EFD_NONBLOCK | EFD_CLOEXEC);
   int TFD = timerfd_create(CLOCK_MONOTONIC,
     TFD_NONBLOCK | TFD_CLOEXEC);
   int SD = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
-
+  int IFD = inotify_init1(IN_NONBLOCK | IN_CLOEXEC);
   printf("good\n"); exit(0);
   
 	for (int i = 0; i < 676; i++) {
@@ -747,17 +701,14 @@ int main(int argc, char *argv[]) {
 	void *map_buf;
 	int ret, i;
 	
-#if 0
-	fd = drmOpen("i915", NULL);
-#else
-	fd = open("/dev/dri/card0", O_RDWR);
-#endif
-	if(fd < 0){
+  int DFD = open("/dev/dri/card0", O_RDWR);
+
+	if(DFD < 0){
 		fprintf(stderr, "drmOpen failed: %s\n", strerror(errno));
 		goto out;
 	}
 
-	resources = drmModeGetResources(fd);
+	resources = drmModeGetResources(DFD);
 	if(resources == NULL){
 		fprintf(stderr, "drmModeGetResources failed: %s\n", strerror(errno));
 		goto close_fd;
@@ -765,7 +716,7 @@ int main(int argc, char *argv[]) {
 
 	/* find the first available connector with modes */
 	for(i=0; i < resources->count_connectors; ++i){
-		connector = drmModeGetConnector(fd, resources->connectors[i]);
+		connector = drmModeGetConnector(DFD, resources->connectors[i]);
 		if(connector != NULL){
 			fprintf(stderr, "connector %d found\n", connector->connector_id);
 			if(connector->connection == DRM_MODE_CONNECTED
@@ -786,7 +737,7 @@ int main(int argc, char *argv[]) {
 
 	/* find the encoder matching the first available connector */
 	for(i=0; i < resources->count_encoders; ++i){
-		encoder = drmModeGetEncoder(fd, resources->encoders[i]);
+		encoder = drmModeGetEncoder(DFD, resources->encoders[i]);
 		if(encoder != NULL){
 			fprintf(stderr, "encoder %d found\n", encoder->encoder_id);
 			if(encoder->encoder_id == connector->encoder_id);
@@ -801,7 +752,7 @@ int main(int argc, char *argv[]) {
 	}
 
 	/* init kms bo stuff */	
-	ret = kms_create(fd, &kms_driver);
+	ret = kms_create(DFD, &kms_driver);
 	if(ret){
 		fprintf(stderr, "kms_create failed: %s\n", strerror(errno));
 		goto free_drm_res;
@@ -811,20 +762,20 @@ int main(int argc, char *argv[]) {
 		&pitch, &kms_bo, &bo_handle, draw_buffer);
 
 	/* add FB which is associated with bo */
-	ret = drmModeAddFB(fd, mode.hdisplay, mode.vdisplay, 24, 32, pitch, bo_handle, &fb_id);
+	ret = drmModeAddFB(DFD, mode.hdisplay, mode.vdisplay, 24, 32, pitch, bo_handle, &fb_id);
 	if(ret){
 		fprintf(stderr, "drmModeAddFB failed (%ux%u): %s\n",
 			mode.hdisplay, mode.vdisplay, strerror(errno));
 		goto free_first_bo;
 	}
 
-	orig_crtc = drmModeGetCrtc(fd, encoder->crtc_id);
+	orig_crtc = drmModeGetCrtc(DFD, encoder->crtc_id);
 	if (orig_crtc == NULL)
 	  goto free_first_bo;
 
 	/* kernel mode setting, wow! */
 	ret = drmModeSetCrtc(
-				fd, encoder->crtc_id, fb_id, 
+				DFD, encoder->crtc_id, fb_id, 
 				0, 0, 	/* x, y */ 
 				&connector->connector_id, 
 				1, 		/* element count of the connectors array above*/
@@ -838,7 +789,7 @@ int main(int argc, char *argv[]) {
 		&pitch, &second_kms_bo, &bo_handle, draw_buffer);
 
 	/* add another FB which is associated with bo */
-	ret = drmModeAddFB(fd, mode.hdisplay, mode.vdisplay, 24, 32, pitch, bo_handle, &second_fb_id);
+	ret = drmModeAddFB(DFD, mode.hdisplay, mode.vdisplay, 24, 32, pitch, bo_handle, &second_fb_id);
 	if(ret){
 		fprintf(stderr, "drmModeAddFB failed (%ux%u): %s\n",
 			mode.hdisplay, mode.vdisplay, strerror(errno));
@@ -849,7 +800,7 @@ int main(int argc, char *argv[]) {
 	memset(&flip_context, 0, sizeof flip_context);
 
 	ret = drmModePageFlip(
-		fd, encoder->crtc_id, second_fb_id,
+		DFD, encoder->crtc_id, second_fb_id,
 		DRM_MODE_PAGE_FLIP_EVENT, &flip_context);
 	if (ret) {
 		fprintf(stderr, "failed to page flip: %s\n", strerror(errno));

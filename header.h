@@ -22,6 +22,37 @@
 #include <stdarg.h>
 #include <stdlib.h>
 #include <sys/time.h>
+#include <sys/inotify.h>
+#include <errno.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/ioctl.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <termios.h>
+#include <fcntl.h>
+#include <errno.h>
+#include <math.h>
+#include <xf86drm.h>
+#include <xf86drmMode.h>
+#include <errno.h>
+#include <stdlib.h>
+#include <string.h>
+#include <errno.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <xf86drm.h>
+#include <string.h>
+#include <unistd.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <sys/sysmacros.h>
+#include "xf86drm.h"
 
 #include <sys/random.h>
 
