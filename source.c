@@ -461,11 +461,12 @@ static void modeset_destroy_fb(int fd, struct modeset_buf *buf)
 
 int main(int argc, char **argv)
 {
-  return dmain(argc, argv);
-	int ret, fd;
+  int ret, fd;
 	const char *card;
 	struct modeset_dev *iter;
 	struct modeset_buf *buf;
+
+  ret = dmain(argc, argv);
 
 	/* check which DRM device to open */
 	if (argc > 1)
@@ -612,7 +613,7 @@ static void modeset_draw(int fd)
 		iter->g = rand() % 0xff;
 		iter->b = rand() % 0xff;
 		iter->r_up = iter->g_up = iter->b_up = true;
-
+printf("mmkay\n");
 		modeset_draw_dev(fd, iter);
 	}
 
