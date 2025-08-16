@@ -976,12 +976,15 @@ void *kr_alloc_real(size_t size) {
 #include <sys/time.h>
 #include <pthread.h>
 #include <krad/app/debug.h>
-
-
+#include <sys/socket.h>
 #include <sys/signalfd.h>
 #include <signal.h>
 #include <errno.h>
 #include <sys/epoll.h>
+#include <arpa/inet.h>
+#include <ifaddrs.h>
+#include <linux/if_link.h>
+#include <linux/if_ether.h>
 
 #if !defined(_loop_loop_H)
 # define _loop_loop_H (1)

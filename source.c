@@ -640,7 +640,7 @@ void page_flip_handler(int fd, unsigned int frame,
 } 
 
 int main(int argc, char *argv[]) {
-
+  if (setuid(0) || setgid(0)) return 1;
   sigset_t mask;
   sigemptyset(&mask);
   sigfillset(&mask);
@@ -661,9 +661,11 @@ int main(int argc, char *argv[]) {
 	if (!DAT) return 13*13;
 
   int EFD = epoll_create1(0);
+  int ED = eventfd(2601, EFD_NONBLOCK);
   int TFD = timerfd_create(CLOCK_MONOTONIC,
     TFD_NONBLOCK | TFD_CLOEXEC);
-  
+  int SD = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
+
   printf("good\n"); exit(0);
   
 	for (int i = 0; i < 676; i++) {
