@@ -2,80 +2,17 @@
 
 #define ASZ 4205260800
 
-int dmain(int argc, char **argv) {
-  if (argc > 1) printf("%d retarded arguments.\n", argc - 1);
-  int R;
-  int MFD;
-  unsigned long SZ = 4205260800;
-  unsigned char *DAT;
-
-  if ((MFD = memfd_create("pixmap-framebuffer", 0)) < 0) return 1;
-  do { R = ftruncate(MFD, SZ); } while (R < 0 && errno == EINTR);
-	DAT = mmap(NULL, SZ, PROT_READ | PROT_WRITE, MAP_SHARED, MFD, 0);
-	if (!DAT) return 13*13;
-	printf("mmap DAT %p + 4205260800, nice!\n", DAT);
-
-  printf("GMP %s\n", gmp_version);
-  printf("Cairo %s\n", cairo_version_string());
-
-  pw_init(&argc, &argv);
-  char *pw_hdr_ver = pw_get_headers_version();
-  const char *pw_lib_ver = pw_get_library_version();
-  if (strsz(pw_hdr_ver) != strsz(pw_lib_ver)) return 42;
-  if (mcmp(pw_hdr_ver, pw_lib_ver, strsz(pw_lib_ver))) return 666;
-  printf("Pipewire %s\n", pw_hdr_ver);
-
-  printf("Help World!\n");
-
-  mpz_t a, b, c, ap, p, r, x;
-
-  mpz_init_set_ui(b, 0);
-  mpz_init_set_ui(c, 0);
-  mpz_init_set_ui(r, 0);
-  mpz_init_set_str(a, "4205260800", 10);
-  mpz_init_set_str(ap, "4205260799", 10);
-  mpz_init_set_str(p, "57896044618658097711785492504343953926634992332820282019728792003956564819949", 10);
-  mpz_mod(r, p, a);
-  gmp_printf("%Zd\n", p);
-  
-  mpz_init_set_str(x, "18446744073709551616", 10);
-  mpz_mod(r, p, x);
-  gmp_printf("%Zd\n", r);
-
-  mpz_t e;
-  mpz_init(e);
-  mpz_fac_ui(e, 26);
-  gmp_printf("26!\n%Zd\n", e);
-
-  mpz_t f;
-  mpz_init(f);
-  mpz_fac_ui(f, 126);
-  gmp_printf("126!\n%Zd\n", f);
-  
-  mpz_t g;
-  mpz_init(g);
-  mpz_fac_ui(g, 209);
-  gmp_printf("209!\n%Zd\n", g);
- 
-
-  /* *C */
-  return 2601;
-}
 struct kms_driver;
-
-struct kms_bo
-{
-	struct kms_driver *kms;
-	void *ptr;
-	size_t size;
-	size_t offset;
-	size_t pitch;
-	unsigned handle;
+struct kms_bo {
+  struct kms_driver *kms;
+  void *ptr;
+  size_t size;
+  size_t offset;
+  size_t pitch;
+  unsigned handle;
 };
 
-
-enum kms_attrib
-{
+enum kms_attrib {
 	KMS_TERMINATE_PROP_LIST,
 #define KMS_TERMINATE_PROP_LIST KMS_TERMINATE_PROP_LIST
 	KMS_BO_TYPE,
@@ -89,42 +26,30 @@ enum kms_attrib
 	KMS_HANDLE,
 #define KMS_HANDLE KMS_HANDLE
 };
-enum kms_bo_type
-{
+
+enum kms_bo_type {
 	KMS_BO_TYPE_SCANOUT_X8R8G8B8 = (1 << 0),
 #define KMS_BO_TYPE_SCANOUT_X8R8G8B8 KMS_BO_TYPE_SCANOUT_X8R8G8B8
 	KMS_BO_TYPE_CURSOR_64X64_A8R8G8B8 =  (1 << 1),
 #define KMS_BO_TYPE_CURSOR_64X64_A8R8G8B8 KMS_BO_TYPE_CURSOR_64X64_A8R8G8B8
 };
-struct kms_driver
-{
-	int (*get_prop)(struct kms_driver *kms, const unsigned key,
-			unsigned *out);
-	int (*destroy)(struct kms_driver *kms);
-	int (*bo_create)(struct kms_driver *kms,
-			 unsigned width,
-			 unsigned height,
-			 enum kms_bo_type type,
-			 const unsigned *attr,
-			 struct kms_bo **out);
-	int (*bo_get_prop)(struct kms_bo *bo, const unsigned key,
-			   unsigned *out);
-	int (*bo_map)(struct kms_bo *bo, void **out);
-	int (*bo_unmap)(struct kms_bo *bo);
-	int (*bo_destroy)(struct kms_bo *bo);
-	int fd;
+
+struct kms_driver {
+  int (*get_prop)(struct kms_driver *kms, const unsigned key, unsigned *out);
+  int (*destroy)(struct kms_driver *kms);
+  int (*bo_create)(struct kms_driver *kms,
+  unsigned width,
+  unsigned height,
+  enum kms_bo_type type,
+  const unsigned *attr,
+  struct kms_bo **out);
+  int (*bo_get_prop)(struct kms_bo *bo, const unsigned key, unsigned *out);
+  int (*bo_map)(struct kms_bo *bo, void **out);
+  int (*bo_unmap)(struct kms_bo *bo);
+  int (*bo_destroy)(struct kms_bo *bo);
+  int fd;
 };
 
-/**
-FLAGS=`pkg-config --cflags --libs libdrm libkms`
-FLAGS+=-Wall -O0 -g
-FLAGS+=-D_FILE_OFFSET_BITS=64
-FLAGS+=-lcairo
-
-all:
-        gcc -o kms-pageflip kms-pageflip.c $(FLAGS)
-
-**/
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -138,17 +63,6 @@ all:
 #include <xf86drm.h>
 #include <xf86drmMode.h>
 
-
-#ifndef _LIBKMS_H_
-#define _LIBKMS_H_
-#if defined(__cplusplus)
-extern "C" {
-#endif
-/**
- * \file
- *
- */
-
 int kms_create(int fd, struct kms_driver **out);
 int kms_get_prop(struct kms_driver *kms, unsigned key, unsigned *out);
 int kms_destroy(struct kms_driver **kms);
@@ -157,12 +71,6 @@ int kms_bo_get_prop(struct kms_bo *bo, unsigned key, unsigned *out);
 int kms_bo_map(struct kms_bo *bo, void **out);
 int kms_bo_unmap(struct kms_bo *bo);
 int kms_bo_destroy(struct kms_bo **bo);
-#if defined(__cplusplus)
-};
-#endif
-#endif
-
-
 
 
 #ifndef LIBDRM_LIBDRM_H
@@ -731,9 +639,103 @@ void page_flip_handler(int fd, unsigned int frame,
 	}
 } 
 
-int main(int argc, char *argv[])
-{
-	int fd, pitch, bo_handle, fb_id, second_fb_id;
+int main(int argc, char *argv[]) {
+  if (argc > 1) printf("%d retarded arguments.\n", argc - 1);
+  int R;
+  int MFD;
+  unsigned long SZ = 4205260800;
+  unsigned char *DAT;
+
+  if ((MFD = memfd_create("pixmap-framebuffer", 0)) < 0) return 1;
+  do { R = ftruncate(MFD, SZ); } while (R < 0 && errno == EINTR);
+	DAT = mmap(NULL, SZ, PROT_READ | PROT_WRITE, MAP_SHARED, MFD, 0);
+	if (!DAT) return 13*13;
+	printf("mmap DAT %p + 4205260800, nice!\n", DAT);
+
+	for (int i = 0; i < 676; i++) {
+	  /* continue; */
+	  char c1 = 96 + 1 + (i / 26);
+	  char c2 = 96 + 1 + (i % 26);
+	  char filename[256];
+	  snprintf(filename, 256, "map/%c/%c/%s%s.png",
+	                               c1, c2, nato[c1 - 97], nato[c2 - 97]);
+	  cairo_surface_t *cst = cairo_image_surface_create_from_png(filename);
+	  if (cairo_image_surface_get_width(cst) != 1920) exit(1);
+    if (cairo_image_surface_get_height(cst) != 1080) exit(1);
+    if (cairo_image_surface_get_stride(cst) != 1920 * 4) exit(1);
+    if (cairo_image_surface_get_format(cst) != CAIRO_FORMAT_RGB24) {
+      printf("not rite bro\n"); exit(1);
+    }
+    unsigned char *dat = cairo_image_surface_get_data(cst);
+    unsigned long x0 = (i % 26) * (1920*3);
+    /*y0 = (i / 26) * (161740800); (49920*3=149760) * 1080 < x 28080 */
+    //printf("%zu // 676 :: %zu :: %zu :: %zu\n", i + 1, x0, y0, x0 * y0);
+    printf("%zu :: %c %zu [%zu] :: %c %zu :: xof %zu pxyoff [[%zu]] %zu\n",
+		    i + 1,
+		    c1,
+		    ((i / 26) + 1),
+		    ((i / 26) + 0) * 161740800,
+		    c2,
+		    ((i % 26) + 1),
+		    (((i / 26) + 0) * 161740800) + x0,
+		    x0,
+		    (676 - (i + 1)));
+    //(4205260800/26/6220800 /26/(26*1920*3))//1026675 = 4205260800/4096
+    // (4205260800/149760) == 28080
+    int stride = 1920 * 26 * 3;
+    for (int yy = 0; yy < 1080; yy++) {
+      int pyy = yy * stride;
+      for (int xx = 0; xx < 1920; xx++) {
+        int pxy = pyy + (xx * 3);
+        DAT[pxy] = dat[(yy * 4) + (xx * 4)];
+        DAT[pxy + 1] = dat[(yy * 4) + (xx * 4) + 1];
+        DAT[pxy + 2] = dat[(yy * 4) + (xx * 4) + 2];
+        //DAT[(x0*y0) + pxy + (xx * 3) + 1] = dat[px * 4 + 1];
+        //DAT[(x0*y0) + pxy + (xx * 3) + 2] = dat[px * 4 + 2];
+      }
+    }
+  }
+
+
+  printf("GMP %s\n", gmp_version);
+  printf("Cairo %s\n", cairo_version_string());
+
+  pw_init(&argc, &argv);
+  char *pw_hdr_ver = pw_get_headers_version();
+  const char *pw_lib_ver = pw_get_library_version();
+  if (strsz(pw_hdr_ver) != strsz(pw_lib_ver)) return 42;
+  if (mcmp(pw_hdr_ver, pw_lib_ver, strsz(pw_lib_ver))) return 666;
+  printf("Pipewire %s\n", pw_hdr_ver);
+
+  printf("Help World!\n");
+
+  mpz_t a, b, c, ap, p, r, x;
+
+  mpz_init_set_ui(b, 0);
+  mpz_init_set_ui(c, 0);
+  mpz_init_set_ui(r, 0);
+  mpz_init_set_str(a, "4205260800", 10);
+  mpz_init_set_str(ap, "4205260799", 10);
+  mpz_init_set_str(p, "57896044618658097711785492504343953926634992332820282019728792003956564819949", 10);
+  mpz_mod(r, p, a);
+  gmp_printf("%Zd\n", p);
+  mpz_init_set_str(x, "18446744073709551616", 10);
+  mpz_mod(r, p, x);
+  gmp_printf("%Zd\n", r);
+  mpz_t e;
+  mpz_init(e);
+  mpz_fac_ui(e, 26);
+  gmp_printf("26!\n%Zd\n", e);
+  mpz_t f;
+  mpz_init(f);
+  mpz_fac_ui(f, 126);
+  gmp_printf("126!\n%Zd\n", f);
+  mpz_t g;
+  mpz_init(g);
+  mpz_fac_ui(g, 209);
+  gmp_printf("209!\n%Zd\n", g);
+
+  int fd, pitch, bo_handle, fb_id, second_fb_id;
 	drmModeRes *resources;
 	drmModeConnector *connector;
 	drmModeEncoder *encoder;
