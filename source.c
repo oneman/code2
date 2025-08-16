@@ -61,703 +61,878 @@ int dmain(int argc, char **argv) {
   /* *C */
   return 2601;
 }
+struct kms_driver;
 
-#define _GNU_SOURCE
-#include <errno.h>
-#include <fcntl.h>
-#include <stdbool.h>
-#include <stdint.h>
+struct kms_bo
+{
+	struct kms_driver *kms;
+	void *ptr;
+	size_t size;
+	size_t offset;
+	size_t pitch;
+	unsigned handle;
+};
+
+
+enum kms_attrib
+{
+	KMS_TERMINATE_PROP_LIST,
+#define KMS_TERMINATE_PROP_LIST KMS_TERMINATE_PROP_LIST
+	KMS_BO_TYPE,
+#define KMS_BO_TYPE KMS_BO_TYPE
+	KMS_WIDTH,
+#define KMS_WIDTH KMS_WIDTH
+	KMS_HEIGHT,
+#define KMS_HEIGHT KMS_HEIGHT
+	KMS_PITCH,
+#define KMS_PITCH KMS_PITCH
+	KMS_HANDLE,
+#define KMS_HANDLE KMS_HANDLE
+};
+enum kms_bo_type
+{
+	KMS_BO_TYPE_SCANOUT_X8R8G8B8 = (1 << 0),
+#define KMS_BO_TYPE_SCANOUT_X8R8G8B8 KMS_BO_TYPE_SCANOUT_X8R8G8B8
+	KMS_BO_TYPE_CURSOR_64X64_A8R8G8B8 =  (1 << 1),
+#define KMS_BO_TYPE_CURSOR_64X64_A8R8G8B8 KMS_BO_TYPE_CURSOR_64X64_A8R8G8B8
+};
+struct kms_driver
+{
+	int (*get_prop)(struct kms_driver *kms, const unsigned key,
+			unsigned *out);
+	int (*destroy)(struct kms_driver *kms);
+	int (*bo_create)(struct kms_driver *kms,
+			 unsigned width,
+			 unsigned height,
+			 enum kms_bo_type type,
+			 const unsigned *attr,
+			 struct kms_bo **out);
+	int (*bo_get_prop)(struct kms_bo *bo, const unsigned key,
+			   unsigned *out);
+	int (*bo_map)(struct kms_bo *bo, void **out);
+	int (*bo_unmap)(struct kms_bo *bo);
+	int (*bo_destroy)(struct kms_bo *bo);
+	int fd;
+};
+
+/**
+FLAGS=`pkg-config --cflags --libs libdrm libkms`
+FLAGS+=-Wall -O0 -g
+FLAGS+=-D_FILE_OFFSET_BITS=64
+FLAGS+=-lcairo
+
+all:
+        gcc -o kms-pageflip kms-pageflip.c $(FLAGS)
+
+**/
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/mman.h>
-#include <time.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <unistd.h>
+#include <termios.h>
+#include <fcntl.h>
+#include <errno.h>
+#include <math.h>
 #include <xf86drm.h>
 #include <xf86drmMode.h>
 
-struct modeset_buf;
-struct modeset_dev;
-static int modeset_find_crtc(int fd, drmModeRes *res, drmModeConnector *conn,
-			     struct modeset_dev *dev);
-static int modeset_create_fb(int fd, struct modeset_buf *buf);
-static void modeset_destroy_fb(int fd, struct modeset_buf *buf);
-static int modeset_setup_dev(int fd, drmModeRes *res, drmModeConnector *conn,
-			     struct modeset_dev *dev);
-static int modeset_open(int *out, const char *node);
-static int modeset_prepare(int fd);
-static void modeset_draw(int fd);
-static void modeset_draw_dev(int fd, struct modeset_dev *dev);
-static void modeset_cleanup(int fd);
 
-/*
- * modeset_open() stays the same.
- */
-
-static int modeset_open(int *out, const char *node)
-{
-	int fd, ret;
-	uint64_t has_dumb;
-
-	fd = open(node, O_RDWR | O_CLOEXEC);
-	if (fd < 0) {
-		ret = -errno;
-		fprintf(stderr, "cannot open '%s': %m\n", node);
-		return ret;
-	}
-
-	if (drmGetCap(fd, DRM_CAP_DUMB_BUFFER, &has_dumb) < 0 ||
-	    !has_dumb) {
-		fprintf(stderr, "drm device '%s' does not support dumb buffers\n",
-			node);
-		close(fd);
-		return -EOPNOTSUPP;
-	}
-
-	*out = fd;
-	return 0;
-}
-
-/*
- * modeset_buf and modeset_dev stay mostly the same. But 6 new fields are added
- * to modeset_dev: r, g, b, r_up, g_up, b_up. They are used to compute the
- * current color that is drawn on this output device. You can ignore them as
- * they aren't important for this example.
- * The modeset-double-buffered.c example used exactly the same fields but as
- * local variables in modeset_draw().
+#ifndef _LIBKMS_H_
+#define _LIBKMS_H_
+#if defined(__cplusplus)
+extern "C" {
+#endif
+/**
+ * \file
  *
- * The \pflip_pending variable is true when a page-flip is currently pending,
- * that is, the kernel will flip buffers on the next vertical blank. The
- * \cleanup variable is true if the device is currently cleaned up and no more
- * pageflips should be scheduled. They are used to synchronize the cleanup
- * routines.
  */
 
-struct modeset_buf {
-	uint32_t width;
-	uint32_t height;
-	uint32_t stride;
-	uint32_t size;
-	uint32_t handle;
-	uint8_t *map;
-	uint32_t fb;
+int kms_create(int fd, struct kms_driver **out);
+int kms_get_prop(struct kms_driver *kms, unsigned key, unsigned *out);
+int kms_destroy(struct kms_driver **kms);
+int kms_bo_create(struct kms_driver *kms, const unsigned *attr, struct kms_bo **out);
+int kms_bo_get_prop(struct kms_bo *bo, unsigned key, unsigned *out);
+int kms_bo_map(struct kms_bo *bo, void **out);
+int kms_bo_unmap(struct kms_bo *bo);
+int kms_bo_destroy(struct kms_bo **bo);
+#if defined(__cplusplus)
 };
+#endif
+#endif
 
-struct modeset_dev {
-	struct modeset_dev *next;
 
-	unsigned int front_buf;
-	struct modeset_buf bufs[2];
 
-	drmModeModeInfo mode;
-	uint32_t conn;
-	uint32_t crtc;
-	drmModeCrtc *saved_crtc;
 
-	bool pflip_pending;
-	bool cleanup;
+#ifndef LIBDRM_LIBDRM_H
+#define LIBDRM_LIBDRM_H
+#if HAVE_VISIBILITY
+#  define drm_private __attribute__((visibility("hidden")))
+#  define drm_public  __attribute__((visibility("default")))
+#else
+#  define drm_private
+#  define drm_public
+#endif
 
-	uint8_t r, g, b;
-	bool r_up, g_up, b_up;
-};
+drm_private int linux_create(int fd, struct kms_driver **out);
+drm_private int vmwgfx_create(int fd, struct kms_driver **out);
+drm_private int intel_create(int fd, struct kms_driver **out);
+drm_private int dumb_create(int fd, struct kms_driver **out);
+drm_private int nouveau_create(int fd, struct kms_driver **out);
+drm_private int radeon_create(int fd, struct kms_driver **out);
+drm_private int exynos_create(int fd, struct kms_driver **out);
 
-static struct modeset_dev *modeset_list = NULL;
-
-/*
- * modeset_prepare() stays the same.
+/**
+ * Static (compile-time) assertion.
+ * Basically, use COND to dimension an array.  If COND is false/zero the
+ * array size will be -1 and we'll get a compilation error.
  */
-
-static int modeset_prepare(int fd)
+#define STATIC_ASSERT(COND) \
+   do { \
+      (void) sizeof(char [1 - 2*!(COND)]); \
+   } while (0)
+#include <sys/mman.h>
+#if defined(__BIONIC__) && !defined(__LP64__)
+#include <errno.h> /* for EINVAL */
+static inline void *drm_mmap(void *addr, size_t length, int prot, int flags,
+                             int fd, loff_t offset)
 {
-	drmModeRes *res;
-	drmModeConnector *conn;
-	unsigned int i;
-	struct modeset_dev *dev;
+   /* offset must be aligned to 4096 (not necessarily the page size) */
+   if (offset & 4095) {
+      errno = EINVAL;
+      return MAP_FAILED;
+   }
+   return mmap64(addr, length, prot, flags, fd, offset);
+}
+#  define drm_munmap(addr, length) \
+              munmap(addr, length)
+#else
+/* assume large file support exists */
+#  define drm_mmap(addr, length, prot, flags, fd, offset) \
+              mmap(addr, length, prot, flags, fd, offset)
+static inline int drm_munmap(void *addr, size_t length)
+{
+   /* Copied from configure code generated by AC_SYS_LARGEFILE */
+#define LARGE_OFF_T ((((off_t) 1 << 31) << 31) - 1 + \
+                     (((off_t) 1 << 31) << 31))
+   STATIC_ASSERT(LARGE_OFF_T % 2147483629 == 721 &&
+                 LARGE_OFF_T % 2147483647 == 1);
+#undef LARGE_OFF_T
+   return munmap(addr, length);
+}
+#endif
+#endif
+#include <errno.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include <errno.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <xf86drm.h>
+#include <string.h>
+#include <unistd.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+
+#include <sys/sysmacros.h>
+
+
+
+#define PATH_SIZE 512
+static int
+linux_name_from_sysfs(int fd, char **out)
+{
+	char path[PATH_SIZE+1] = ""; /* initialize to please valgrind */
+	char link[PATH_SIZE+1] = "";
+	struct stat buffer;
+	unsigned maj, min;
+	char* slash_name;
 	int ret;
-
-	/* retrieve resources */
-	res = drmModeGetResources(fd);
-	if (!res) {
-		fprintf(stderr, "cannot retrieve DRM resources (%d): %m\n",
-			errno);
-		return -errno;
-	}
-
-	/* iterate all connectors */
-	for (i = 0; i < res->count_connectors; ++i) {
-		/* get information for each connector */
-		conn = drmModeGetConnector(fd, res->connectors[i]);
-		if (!conn) {
-			fprintf(stderr, "cannot retrieve DRM connector %u:%u (%d): %m\n",
-				i, res->connectors[i], errno);
-			continue;
-		}
-
-		/* create a device structure */
-		dev = malloc(sizeof(*dev));
-		memset(dev, 0, sizeof(*dev));
-		dev->conn = conn->connector_id;
-
-		/* call helper function to prepare this connector */
-		ret = modeset_setup_dev(fd, res, conn, dev);
-		if (ret) {
-			if (ret != -ENOENT) {
-				errno = -ret;
-				fprintf(stderr, "cannot setup device for connector %u:%u (%d): %m\n",
-					i, res->connectors[i], errno);
-			}
-			free(dev);
-			drmModeFreeConnector(conn);
-			continue;
-		}
-
-		/* free connector data and link device into global list */
-		drmModeFreeConnector(conn);
-		dev->next = modeset_list;
-		modeset_list = dev;
-	}
-
-	/* free resources again */
-	drmModeFreeResources(res);
+	/* 
+	 * Inside the sysfs directory for the device there is a symlink
+	 * to the directory representing the driver module, that path
+	 * happens to hold the name of the driver.
+	 *
+	 * So lets get the symlink for the drm device. Then read the link
+	 * and filter out the last directory which happens to be the name
+	 * of the driver, which we can use to load the correct interface.
+	 *
+	 * Thanks to Ray Strode of Plymouth for the code.
+	 */
+	ret = fstat(fd, &buffer);
+	if (ret)
+		return -EINVAL;
+	if (!S_ISCHR(buffer.st_mode))
+		return -EINVAL;
+	maj = major(buffer.st_rdev);
+	min = minor(buffer.st_rdev);
+	snprintf(path, PATH_SIZE, "/sys/dev/char/%d:%d/device/driver", maj, min);
+	if (readlink(path, link, PATH_SIZE) < 0)
+		return -EINVAL;
+	/* link looks something like this: ../../../bus/pci/drivers/intel */
+	slash_name = strrchr(link, '/');
+	if (!slash_name)
+		return -EINVAL;
+	/* copy name and at the same time remove the slash */
+	*out = strdup(slash_name + 1);
 	return 0;
 }
-
-/*
- * modeset_setup_dev() stays the same.
- */
-
-static int modeset_setup_dev(int fd, drmModeRes *res, drmModeConnector *conn,
-			     struct modeset_dev *dev)
+static int
+linux_from_sysfs(int fd, struct kms_driver **out)
 {
+	char *name;
 	int ret;
-
-	/* check if a monitor is connected */
-	if (conn->connection != DRM_MODE_CONNECTED) {
-		fprintf(stderr, "ignoring unused connector %u\n",
-			conn->connector_id);
-		return -ENOENT;
-	}
-
-	/* check if there is at least one valid mode */
-	if (conn->count_modes == 0) {
-		fprintf(stderr, "no valid mode for connector %u\n",
-			conn->connector_id);
-		return -EFAULT;
-	}
-
-	/* copy the mode information into our device structure and into both
-	 * buffers */
-	memcpy(&dev->mode, &conn->modes[0], sizeof(dev->mode));
-	dev->bufs[0].width = conn->modes[0].hdisplay;
-	dev->bufs[0].height = conn->modes[0].vdisplay;
-	dev->bufs[1].width = conn->modes[0].hdisplay;
-	dev->bufs[1].height = conn->modes[0].vdisplay;
-	fprintf(stderr, "mode for connector %u is %ux%u\n",
-		conn->connector_id, dev->bufs[0].width, dev->bufs[0].height);
-
-	/* find a crtc for this connector */
-	ret = modeset_find_crtc(fd, res, conn, dev);
-	if (ret) {
-		fprintf(stderr, "no valid crtc for connector %u\n",
-			conn->connector_id);
+	ret = linux_name_from_sysfs(fd, &name);
+	if (ret)
 		return ret;
-	}
-
-	/* create framebuffer #1 for this CRTC */
-	ret = modeset_create_fb(fd, &dev->bufs[0]);
-	if (ret) {
-		fprintf(stderr, "cannot create framebuffer for connector %u\n",
-			conn->connector_id);
-		return ret;
-	}
-
-	/* create framebuffer #2 for this CRTC */
-	ret = modeset_create_fb(fd, &dev->bufs[1]);
-	if (ret) {
-		fprintf(stderr, "cannot create framebuffer for connector %u\n",
-			conn->connector_id);
-		modeset_destroy_fb(fd, &dev->bufs[0]);
-		return ret;
-	}
-
-	return 0;
-}
-
-/*
- * modeset_find_crtc() stays the same.
- */
-
-static int modeset_find_crtc(int fd, drmModeRes *res, drmModeConnector *conn,
-			     struct modeset_dev *dev)
-{
-	drmModeEncoder *enc;
-	unsigned int i, j;
-	int32_t crtc;
-	struct modeset_dev *iter;
-
-	/* first try the currently conected encoder+crtc */
-	if (conn->encoder_id)
-		enc = drmModeGetEncoder(fd, conn->encoder_id);
+#if HAVE_INTEL
+	if (!strcmp(name, "intel"))
+		ret = intel_create(fd, out);
 	else
-		enc = NULL;
-
-	if (enc) {
-		if (enc->crtc_id) {
-			crtc = enc->crtc_id;
-			for (iter = modeset_list; iter; iter = iter->next) {
-				if (iter->crtc == crtc) {
-					crtc = -1;
-					break;
-				}
-			}
-
-			if (crtc >= 0) {
-				drmModeFreeEncoder(enc);
-				dev->crtc = crtc;
-				return 0;
-			}
-		}
-
-		drmModeFreeEncoder(enc);
-	}
-
-	/* If the connector is not currently bound to an encoder or if the
-	 * encoder+crtc is already used by another connector (actually unlikely
-	 * but lets be safe), iterate all other available encoders to find a
-	 * matching CRTC. */
-	for (i = 0; i < conn->count_encoders; ++i) {
-		enc = drmModeGetEncoder(fd, conn->encoders[i]);
-		if (!enc) {
-			fprintf(stderr, "cannot retrieve encoder %u:%u (%d): %m\n",
-				i, conn->encoders[i], errno);
-			continue;
-		}
-
-		/* iterate all global CRTCs */
-		for (j = 0; j < res->count_crtcs; ++j) {
-			/* check whether this CRTC works with the encoder */
-			if (!(enc->possible_crtcs & (1 << j)))
-				continue;
-
-			/* check that no other device already uses this CRTC */
-			crtc = res->crtcs[j];
-			for (iter = modeset_list; iter; iter = iter->next) {
-				if (iter->crtc == crtc) {
-					crtc = -1;
-					break;
-				}
-			}
-
-			/* we have found a CRTC, so save it and return */
-			if (crtc >= 0) {
-				drmModeFreeEncoder(enc);
-				dev->crtc = crtc;
-				return 0;
-			}
-		}
-
-		drmModeFreeEncoder(enc);
-	}
-
-	fprintf(stderr, "cannot find suitable CRTC for connector %u\n",
-		conn->connector_id);
-	return -ENOENT;
-}
-
-/*
- * modeset_create_fb() stays the same.
- */
-
-static int modeset_create_fb(int fd, struct modeset_buf *buf)
-{
-	struct drm_mode_create_dumb creq;
-	struct drm_mode_destroy_dumb dreq;
-	struct drm_mode_map_dumb mreq;
-	int ret;
-
-	/* create dumb buffer */
-	memset(&creq, 0, sizeof(creq));
-	creq.width = buf->width;
-	creq.height = buf->height;
-	creq.bpp = 32;
-	ret = drmIoctl(fd, DRM_IOCTL_MODE_CREATE_DUMB, &creq);
-	if (ret < 0) {
-		fprintf(stderr, "cannot create dumb buffer (%d): %m\n",
-			errno);
-		return -errno;
-	}
-	buf->stride = creq.pitch;
-	buf->size = creq.size;
-	buf->handle = creq.handle;
-
-	/* create framebuffer object for the dumb-buffer */
-	ret = drmModeAddFB(fd, buf->width, buf->height, 24, 32, buf->stride,
-			   buf->handle, &buf->fb);
-	if (ret) {
-		fprintf(stderr, "cannot create framebuffer (%d): %m\n",
-			errno);
-		ret = -errno;
-		goto err_destroy;
-	}
-
-	/* prepare buffer for memory mapping */
-	memset(&mreq, 0, sizeof(mreq));
-	mreq.handle = buf->handle;
-	ret = drmIoctl(fd, DRM_IOCTL_MODE_MAP_DUMB, &mreq);
-	if (ret) {
-		fprintf(stderr, "cannot map dumb buffer (%d): %m\n",
-			errno);
-		ret = -errno;
-		goto err_fb;
-	}
-
-	/* perform actual memory mapping */
-	buf->map = mmap(0, buf->size, PROT_READ | PROT_WRITE, MAP_SHARED,
-		        fd, mreq.offset);
-	if (buf->map == MAP_FAILED) {
-		fprintf(stderr, "cannot mmap dumb buffer (%d): %m\n",
-			errno);
-		ret = -errno;
-		goto err_fb;
-	}
-
-	/* clear the framebuffer to 0 */
-	memset(buf->map, 0, buf->size);
-
-	return 0;
-
-err_fb:
-	drmModeRmFB(fd, buf->fb);
-err_destroy:
-	memset(&dreq, 0, sizeof(dreq));
-	dreq.handle = buf->handle;
-	drmIoctl(fd, DRM_IOCTL_MODE_DESTROY_DUMB, &dreq);
+#endif
+#if HAVE_VMWGFX
+	if (!strcmp(name, "vmwgfx"))
+		ret = vmwgfx_create(fd, out);
+	else
+#endif
+#if HAVE_NOUVEAU
+	if (!strcmp(name, "nouveau"))
+		ret = nouveau_create(fd, out);
+	else
+#endif
+#if HAVE_RADEON
+	if (!strcmp(name, "radeon"))
+		ret = radeon_create(fd, out);
+	else
+#endif
+#if HAVE_EXYNOS
+	if (!strcmp(name, "exynos"))
+		ret = exynos_create(fd, out);
+	else
+#endif
+		ret = -ENOSYS;
+	free(name);
 	return ret;
 }
-
-/*
- * modeset_destroy_fb() stays the same.
- */
-
-static void modeset_destroy_fb(int fd, struct modeset_buf *buf)
+drm_private int
+linux_create(int fd, struct kms_driver **out)
 {
-	struct drm_mode_destroy_dumb dreq;
-
-	/* unmap buffer */
-	munmap(buf->map, buf->size);
-
-	/* delete framebuffer */
-	drmModeRmFB(fd, buf->fb);
-
-	/* delete dumb buffer */
-	memset(&dreq, 0, sizeof(dreq));
-	dreq.handle = buf->handle;
-	drmIoctl(fd, DRM_IOCTL_MODE_DESTROY_DUMB, &dreq);
+	if (!dumb_create(fd, out))
+		return 0;
+	return linux_from_sysfs(fd, out);
+}
+  
+drm_public int kms_create(int fd, struct kms_driver **out)
+{
+	return linux_create(fd, out);
+}
+drm_public int kms_get_prop(struct kms_driver *kms, unsigned key, unsigned *out)
+{
+	switch (key) {
+	case KMS_BO_TYPE:
+		break;
+	default:
+		return -EINVAL;
+	}
+	return kms->get_prop(kms, key, out);
+}
+drm_public int kms_destroy(struct kms_driver **kms)
+{
+	if (!(*kms))
+		return 0;
+	free(*kms);
+	*kms = NULL;
+	return 0;
+}
+drm_public int kms_bo_create(struct kms_driver *kms, const unsigned *attr, struct kms_bo **out)
+{
+	unsigned width = 0;
+	unsigned height = 0;
+	enum kms_bo_type type = KMS_BO_TYPE_SCANOUT_X8R8G8B8;
+	int i;
+	for (i = 0; attr[i];) {
+		unsigned key = attr[i++];
+		unsigned value = attr[i++];
+		switch (key) {
+		case KMS_WIDTH:
+			width = value;
+			break;
+		case KMS_HEIGHT:
+			height = value;
+			break;
+		case KMS_BO_TYPE:
+			type = value;
+			break;
+		default:
+			return -EINVAL;
+		}
+	}
+	if (width == 0 || height == 0)
+		return -EINVAL;
+	/* XXX sanity check type */
+	if (type == KMS_BO_TYPE_CURSOR_64X64_A8R8G8B8 &&
+	    (width != 64 || height != 64))
+		return -EINVAL;
+	return kms->bo_create(kms, width, height, type, attr, out);
+}
+drm_public int kms_bo_get_prop(struct kms_bo *bo, unsigned key, unsigned *out)
+{
+	switch (key) {
+	case KMS_PITCH:
+		*out = bo->pitch;
+		break;
+	case KMS_HANDLE:
+		*out = bo->handle;
+		break;
+	default:
+		return -EINVAL;
+	}
+	return 0;
+}
+drm_public int kms_bo_map(struct kms_bo *bo, void **out)
+{
+	return bo->kms->bo_map(bo, out);
+}
+drm_public int kms_bo_unmap(struct kms_bo *bo)
+{
+	return bo->kms->bo_unmap(bo);
+}
+drm_public int kms_bo_destroy(struct kms_bo **bo)
+{
+	int ret;
+	if (!(*bo))
+		return 0;
+	ret = (*bo)->kms->bo_destroy(*bo);
+	if (ret)
+		return ret;
+	*bo = NULL;
+	return 0;
 }
 
-/*
- * main() also stays the same.
- */
+drm_private int linux_create(int fd, struct kms_driver **out);
+drm_private int vmwgfx_create(int fd, struct kms_driver **out);
+drm_private int intel_create(int fd, struct kms_driver **out);
+drm_private int dumb_create(int fd, struct kms_driver **out);
+drm_private int nouveau_create(int fd, struct kms_driver **out);
+drm_private int radeon_create(int fd, struct kms_driver **out);
+drm_private int exynos_create(int fd, struct kms_driver **out);
 
-int main(int argc, char **argv)
+
+#include <errno.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include <sys/ioctl.h>
+#include "xf86drm.h"
+
+struct dumb_bo
 {
-  int ret, fd;
-	const char *card;
-	struct modeset_dev *iter;
-	struct modeset_buf *buf;
-
-  ret = dmain(argc, argv);
-
-	/* check which DRM device to open */
-	if (argc > 1)
-		card = argv[1];
-	else
-		card = "/dev/dri/card0";
-
-	fprintf(stderr, "using card '%s'\n", card);
-
-	/* open the DRM device */
-	ret = modeset_open(&fd, card);
+	struct kms_bo base;
+	unsigned map_count;
+};
+static int
+dumb_get_prop(struct kms_driver *kms, unsigned key, unsigned *out)
+{
+	switch (key) {
+	case KMS_BO_TYPE:
+		*out = KMS_BO_TYPE_SCANOUT_X8R8G8B8 | KMS_BO_TYPE_CURSOR_64X64_A8R8G8B8;
+		break;
+	default:
+		return -EINVAL;
+	}
+	return 0;
+}
+static int
+dumb_destroy(struct kms_driver *kms)
+{
+	free(kms);
+	return 0;
+}
+static int
+dumb_bo_create(struct kms_driver *kms,
+		 const unsigned width, const unsigned height,
+		 const enum kms_bo_type type, const unsigned *attr,
+		 struct kms_bo **out)
+{
+	struct drm_mode_create_dumb arg;
+	struct dumb_bo *bo;
+	int i, ret;
+	for (i = 0; attr[i]; i += 2) {
+		switch (attr[i]) {
+		case KMS_WIDTH:
+		case KMS_HEIGHT:
+			break;
+		case KMS_BO_TYPE:
+			break;
+		default:
+			return -EINVAL;
+		}
+	}
+	bo = calloc(1, sizeof(*bo));
+	if (!bo)
+		return -ENOMEM;
+	memset(&arg, 0, sizeof(arg));
+	/* All BO_TYPE currently are 32bpp formats */
+	arg.bpp = 32;
+	arg.width = width;
+	arg.height = height;
+	ret = drmIoctl(kms->fd, DRM_IOCTL_MODE_CREATE_DUMB, &arg);
 	if (ret)
-		goto out_return;
-
-	/* prepare all connectors and CRTCs */
-	ret = modeset_prepare(fd);
+		goto err_free;
+	bo->base.kms = kms;
+	bo->base.handle = arg.handle;
+	bo->base.size = arg.size;
+	bo->base.pitch = arg.pitch;
+	*out = &bo->base;
+	return 0;
+err_free:
+	free(bo);
+	return ret;
+}
+static int
+dumb_bo_get_prop(struct kms_bo *bo, unsigned key, unsigned *out)
+{
+	switch (key) {
+	default:
+		return -EINVAL;
+	}
+}
+static int
+dumb_bo_map(struct kms_bo *_bo, void **out)
+{
+	struct dumb_bo *bo = (struct dumb_bo *)_bo;
+	struct drm_mode_map_dumb arg;
+	void *map = NULL;
+	int ret;
+	if (bo->base.ptr) {
+		bo->map_count++;
+		*out = bo->base.ptr;
+		return 0;
+	}
+	memset(&arg, 0, sizeof(arg));
+	arg.handle = bo->base.handle;
+	ret = drmIoctl(bo->base.kms->fd, DRM_IOCTL_MODE_MAP_DUMB, &arg);
 	if (ret)
-		goto out_close;
+		return ret;
+	map = drm_mmap(0, bo->base.size, PROT_READ | PROT_WRITE, MAP_SHARED, bo->base.kms->fd, arg.offset);
+	if (map == MAP_FAILED)
+		return -errno;
+	bo->base.ptr = map;
+	bo->map_count++;
+	*out = bo->base.ptr;
+	return 0;
+}
+static int
+dumb_bo_unmap(struct kms_bo *_bo)
+{
+	struct dumb_bo *bo = (struct dumb_bo *)_bo;
+	bo->map_count--;
+	return 0;
+}
+static int
+dumb_bo_destroy(struct kms_bo *_bo)
+{
+	struct dumb_bo *bo = (struct dumb_bo *)_bo;
+	struct drm_mode_destroy_dumb arg;
+	int ret;
+	if (bo->base.ptr) {
+		/* XXX Sanity check map_count */
+		drm_munmap(bo->base.ptr, bo->base.size);
+		bo->base.ptr = NULL;
+	}
+	memset(&arg, 0, sizeof(arg));
+	arg.handle = bo->base.handle;
+	ret = drmIoctl(bo->base.kms->fd, DRM_IOCTL_MODE_DESTROY_DUMB, &arg);
+	if (ret)
+		return -errno;
+	free(bo);
+	return 0;
+}
+drm_private int
+dumb_create(int fd, struct kms_driver **out)
+{
+	struct kms_driver *kms;
+	int ret;
+	uint64_t cap = 0;
+	ret = drmGetCap(fd, DRM_CAP_DUMB_BUFFER, &cap);
+	if (ret || cap == 0)
+		return -EINVAL;
+	kms = calloc(1, sizeof(*kms));
+	if (!kms)
+		return -ENOMEM;
+	kms->fd = fd;
+	kms->bo_create = dumb_bo_create;
+	kms->bo_map = dumb_bo_map;
+	kms->bo_unmap = dumb_bo_unmap;
+	kms->bo_get_prop = dumb_bo_get_prop;
+	kms->bo_destroy = dumb_bo_destroy;
+	kms->get_prop = dumb_get_prop;
+	kms->destroy = dumb_destroy;
+	*out = kms;
+	return 0;
+}
 
-	/* perform actual modesetting on each found connector+CRTC */
-	for (iter = modeset_list; iter; iter = iter->next) {
-		iter->saved_crtc = drmModeGetCrtc(fd, iter->crtc);
-		buf = &iter->bufs[iter->front_buf];
-		ret = drmModeSetCrtc(fd, iter->crtc, buf->fb, 0, 0,
-				     &iter->conn, 1, &iter->mode);
-		if (ret)
-			fprintf(stderr, "cannot set CRTC for connector %u (%d): %m\n",
-				iter->conn, errno);
+#include <cairo/cairo.h>
+
+struct flip_context{
+	int fb_id[2];
+	int current_fb_id;
+	int crtc_id;
+	struct timeval start;
+	int swap_count;
+};
+
+#define max(a, b) ((a) > (b) ? (a) : (b))
+
+typedef void (*draw_func_t)(char *addr, int w, int h, int pitch);
+
+void draw_buffer(char *addr, int w, int h, int pitch)
+{
+	int ret, i, j;
+
+	/* paint the buffer with colored tiles */
+	for (j = 0; j < h; j++) {
+		uint32_t *fb_ptr = (uint32_t*)((char*)addr + j * pitch);
+		for (i = 0; i < w; i++) {
+			div_t d = div(i, w);
+			fb_ptr[i] =
+				0x00130502 * (d.quot >> 6) +
+				0x000a1120 * (d.rem >> 6);
+		}
+	}
+}
+
+void draw_buffer_with_cairo(char *addr, int w, int h, int pitch)
+{
+	cairo_t *cr;
+	cairo_surface_t *surface;
+
+	surface = cairo_image_surface_create_for_data(
+		addr,
+		CAIRO_FORMAT_ARGB32,
+        w, h, pitch);
+    cr = cairo_create(surface);
+	cairo_surface_destroy(surface);
+
+	/* Use normalized coordinates hereinafter */
+	cairo_scale (cr, w, h);
+
+	/* rectangle stroke */
+	cairo_set_source_rgb (cr, 1, 1, 1);
+	cairo_set_line_width (cr, 0.05);
+	cairo_rectangle (cr, 0.1, 0.1, 0.3, 0.4);
+	cairo_stroke (cr);
+
+	/* circle fill */
+	cairo_set_source_rgba(cr, 1, 0, 0, 0.5);
+	cairo_arc(cr, 0.7, 0.3, 0.2, 0, 2 * M_PI);
+	cairo_fill(cr);
+
+	/* text */
+	cairo_set_source_rgb (cr, 0.0, 0.0, 0.0);
+	cairo_select_font_face (cr, "Georgia",
+    	CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
+	cairo_set_font_size (cr, 0.1);
+	cairo_move_to (cr, 0.1, 0.8);
+	cairo_show_text (cr, "drawn with cairo");
+	
+	cairo_destroy(cr);
+}
+
+void create_bo(struct kms_driver *kms_driver, 
+	int w, int h, int *out_pitch, struct kms_bo **out_kms_bo, 
+	int *out_handle, draw_func_t draw)
+{
+	void *map_buf;
+	struct kms_bo *bo;
+	int pitch, handle;
+	unsigned bo_attribs[] = {
+		KMS_WIDTH,   w,
+		KMS_HEIGHT,  h,
+		KMS_BO_TYPE, KMS_BO_TYPE_SCANOUT_X8R8G8B8,
+		KMS_TERMINATE_PROP_LIST
+	};
+	int ret;
+
+	/* ceate kms buffer object, opaque struct identied by struct kms_bo pointer */
+	ret = kms_bo_create(kms_driver, bo_attribs, &bo);
+	if(ret){
+		fprintf(stderr, "kms_bo_create failed: %s\n", strerror(errno));
+		goto exit;
 	}
 
-	/* draw some colors for 5seconds */
-	modeset_draw(fd);
+	/* get the "pitch" or "stride" of the bo */
+	ret = kms_bo_get_prop(bo, KMS_PITCH, &pitch);
+	if(ret){
+		fprintf(stderr, "kms_bo_get_prop KMS_PITCH failed: %s\n", strerror(errno));
+		goto free_bo;
+	}
 
-	/* cleanup everything */
-	modeset_cleanup(fd);
+	/* get the handle of the bo */
+	ret = kms_bo_get_prop(bo, KMS_HANDLE, &handle);
+	if(ret){
+		fprintf(stderr, "kms_bo_get_prop KMS_HANDL failed: %s\n", strerror(errno));
+		goto free_bo;
+	}
+
+	/* map the bo to user space buffer */
+	ret = kms_bo_map(bo, &map_buf);
+	if(ret){
+		fprintf(stderr, "kms_bo_map failed: %s\n", strerror(errno));
+		goto free_bo;
+	}
+
+	draw(map_buf, w, h, pitch);
+
+	kms_bo_unmap(bo);
 
 	ret = 0;
+	*out_kms_bo = bo;
+	*out_pitch = pitch;
+	*out_handle = handle;
+	goto exit;
 
-out_close:
-	close(fd);
-out_return:
-	if (ret) {
-		errno = -ret;
-		fprintf(stderr, "modeset failed with error %d: %m\n", errno);
-	} else {
-		fprintf(stderr, "exiting\n");
-	}
-	return ret;
-}
-
-/*
- * modeset_page_flip_event() is a callback-helper for modeset_draw() below.
- * Please see modeset_draw() for more information.
- *
- * Note that this does nothing if the device is currently cleaned up. This
- * allows to wait for outstanding page-flips during cleanup.
- */
-
-static void modeset_page_flip_event(int fd, unsigned int frame,
-				    unsigned int sec, unsigned int usec,
-				    void *data)
-{
-	struct modeset_dev *dev = data;
-
-	dev->pflip_pending = false;
-	if (!dev->cleanup)
-		modeset_draw_dev(fd, dev);
-}
-
-/*
- * modeset_draw() changes heavily from all previous examples. The rendering has
- * moved into another helper modeset_draw_dev() below, but modeset_draw() is now
- * responsible of controlling when we have to redraw the outputs.
- *
- * So what we do: first redraw all outputs. We initialize the r/g/b/_up
- * variables of each output first, although, you can safely ignore these.
- * They're solely used to compute the next color. Then we call
- * modeset_draw_dev() for each output. This function _always_ redraws the output
- * and schedules a buffer-swap/flip for the next vertical-blank.
- * We now have to wait for each vertical-blank to happen so we can draw the next
- * frame. If a vblank happens, we simply call modeset_draw_dev() again and wait
- * for the next vblank.
- *
- * Note: Different monitors can have different refresh-rates. That means, a
- * vblank event is always assigned to a CRTC. Hence, we get different vblank
- * events for each CRTC/modeset_dev that we use. This also means, that our
- * framerate-controlled color-morphing is different on each monitor. If you want
- * exactly the same frame on all monitors, we would have to share the
- * color-values between all devices. However, for simplicity reasons, we don't
- * do this here.
- *
- * So the last piece missing is how we get vblank events. libdrm provides
- * drmWaitVBlank(), however, we aren't interested in _all_ vblanks, but only in
- * the vblanks for our page-flips. We could use drmWaitVBlank() but there is a
- * more convenient way: drmModePageFlip()
- * drmModePageFlip() schedules a buffer-flip for the next vblank and then
- * notifies us about it. It takes a CRTC-id, fb-id and an arbitrary
- * data-pointer and then schedules the page-flip. This is fully asynchronous and
- * returns immediately.
- * When the page-flip happens, the DRM-fd will become readable and we can call
- * drmHandleEvent(). This will read all vblank/page-flip events and call our
- * modeset_page_flip_event() callback with the data-pointer that we passed to
- * drmModePageFlip(). We simply call modeset_draw_dev() then so the next frame
- * is rendered..
- *
- *
- * So modeset_draw() is reponsible of waiting for the page-flip/vblank events
- * for _all_ currently used output devices and schedule a redraw for them. We
- * could easily do this in a while (1) { drmHandleEvent() } loop, however, this
- * example shows how you can use the DRM-fd to integrate this into your own
- * main-loop. If you aren't familiar with select(), poll() or epoll, please read
- * it up somewhere else. There is plenty of documentation elsewhere on the
- * internet.
- *
- * So what we do is adding the DRM-fd and the keyboard-input-fd (more precisely:
- * the stdin FD) to a select-set and then we wait on this set. If the DRM-fd is
- * readable, we call drmHandleEvents() to handle the page-flip events. If the
- * input-fd is readable, we exit. So on any keyboard input we exit this loop
- * (you need to press RETURN after each keyboard input to make this work).
- */
-
-static void modeset_draw(int fd)
-{
-	int ret;
-	fd_set fds;
-	time_t start, cur;
-	struct timeval v;
-	drmEventContext ev;
-	struct modeset_dev *iter;
-
-	/* init variables */
-	srand(time(&start));
-	FD_ZERO(&fds);
-	memset(&v, 0, sizeof(v));
-	memset(&ev, 0, sizeof(ev));
-	/* Set this to only the latest version you support. Version 2
-	 * introduced the page_flip_handler, so we use that. */
-	ev.version = 2;
-	ev.page_flip_handler = modeset_page_flip_event;
-
-	/* redraw all outputs */
-	for (iter = modeset_list; iter; iter = iter->next) {
-		iter->r = rand() % 0xff;
-		iter->g = rand() % 0xff;
-		iter->b = rand() % 0xff;
-		iter->r_up = iter->g_up = iter->b_up = true;
-printf("mmkay\n");
-		modeset_draw_dev(fd, iter);
-	}
-
-	/* wait 5s for VBLANK or input events */
-	while (time(&cur) < start + 5) {
-		FD_SET(0, &fds);
-		FD_SET(fd, &fds);
-		v.tv_sec = start + 5 - cur;
-
-		ret = select(fd + 1, &fds, NULL, NULL, &v);
-		if (ret < 0) {
-			fprintf(stderr, "select() failed with %d: %m\n", errno);
-			break;
-		} else if (FD_ISSET(0, &fds)) {
-			fprintf(stderr, "exit due to user-input\n");
-			break;
-		} else if (FD_ISSET(fd, &fds)) {
-			drmHandleEvent(fd, &ev);
-		}
-	}
-}
-
-/*
- * A short helper function to compute a changing color value. No need to
- * understand it.
- */
-
-static uint8_t next_color(bool *up, uint8_t cur, unsigned int mod)
-{
-	uint8_t next;
-
-	next = cur + (*up ? 1 : -1) * (rand() % mod);
-	if ((*up && next < cur) || (!*up && next > cur)) {
-		*up = !*up;
-		next = cur;
-	}
-
-	return next;
-}
-
-/*
- * modeset_draw_dev() is a new function that redraws the screen of a single
- * output. It takes the DRM-fd and the output devices as arguments, redraws a
- * new frame and schedules the page-flip for the next vsync.
- *
- * This function does the same as modeset_draw() did in the previous examples
- * but only for a single output device now.
- * After we are done rendering a frame, we have to swap the buffers. Instead of
- * calling drmModeSetCrtc() as we did previously, we now want to schedule this
- * page-flip for the next vertical-blank (vblank). We use drmModePageFlip() for
- * this. It takes the CRTC-id and FB-id and will asynchronously swap the buffers
- * when the next vblank occurs. Note that this is done by the kernel, so neither
- * a thread is started nor any other magic is done in libdrm.
- * The DRM_MODE_PAGE_FLIP_EVENT flag tells drmModePageFlip() to send us a
- * page-flip event on the DRM-fd when the page-flip happened. The last argument
- * is a data-pointer that is returned with this event.
- * If we wouldn't pass this flag, we would not get notified when the page-flip
- * happened.
- *
- * Note: If you called drmModePageFlip() and directly call it again, it will
- * return EBUSY if the page-flip hasn't happened in between. So you almost
- * always want to pass DRM_MODE_PAGE_FLIP_EVENT to get notified when the
- * page-flip happens so you know when to render the next frame.
- * If you scheduled a page-flip but call drmModeSetCrtc() before the next
- * vblank, then the scheduled page-flip will become a no-op. However, you will
- * still get notified when it happens and you still cannot call
- * drmModePageFlip() again until it finished. So to sum it up: there is no way
- * to effectively cancel a page-flip.
- *
- * If you wonder why drmModePageFlip() takes fewer arguments than
- * drmModeSetCrtc(), then you should take into account, that drmModePageFlip()
- * reuses the arguments from drmModeSetCrtc(). So things like connector-ids,
- * x/y-offsets and so on have to be set via drmModeSetCrtc() first before you
- * can use drmModePageFlip()! We do this in main() as all the previous examples
- * did, too.
- */
-
-static void modeset_draw_dev(int fd, struct modeset_dev *dev)
-{
-	struct modeset_buf *buf;
-	/*unsigned int j, k, off;*/
-	int ret;
-
-	dev->r = next_color(&dev->r_up, dev->r, 26);
-	dev->g = next_color(&dev->g_up, dev->g, 26);
-	dev->b = next_color(&dev->b_up, dev->b, 26);
-
-	buf = &dev->bufs[dev->front_buf ^ 1];
+free_bo:
+	kms_bo_destroy(&bo);
 	
-	printf("lol\n");
+exit:
+	return;
 
-	ret = drmModePageFlip(fd, dev->crtc, buf->fb,
-			      DRM_MODE_PAGE_FLIP_EVENT, dev);
-	if (ret) {
-		fprintf(stderr, "cannot flip CRTC for connector %u (%d): %m\n",
-			dev->conn, errno);
-	} else {
-		dev->front_buf ^= 1;
-		dev->pflip_pending = true;
-	}
 }
 
-static void modeset_cleanup(int fd)
+void page_flip_handler(int fd, unsigned int frame,
+		  unsigned int sec, unsigned int usec, void *data)
 {
-	struct modeset_dev *iter;
-	drmEventContext ev;
-	int ret;
+	struct flip_context *context;
+	unsigned int new_fb_id;
+	struct timeval end;
+	double t;
 
-	/* init variables */
-	memset(&ev, 0, sizeof(ev));
-	ev.version = DRM_EVENT_CONTEXT_VERSION;
-	ev.page_flip_handler = modeset_page_flip_event;
-
-	while (modeset_list) {
-		/* remove from global list */
-		iter = modeset_list;
-		modeset_list = iter->next;
-
-		/* if a pageflip is pending, wait for it to complete */
-		iter->cleanup = true;
-		fprintf(stderr, "wait for pending page-flip to complete...\n");
-		while (iter->pflip_pending) {
-			ret = drmHandleEvent(fd, &ev);
-			if (ret)
-				break;
-		}
-
-		/* restore saved CRTC configuration */
-		if (!iter->pflip_pending)
-			drmModeSetCrtc(fd,
-				       iter->saved_crtc->crtc_id,
-				       iter->saved_crtc->buffer_id,
-				       iter->saved_crtc->x,
-				       iter->saved_crtc->y,
-				       &iter->conn,
-				       1,
-				       &iter->saved_crtc->mode);
-		drmModeFreeCrtc(iter->saved_crtc);
-
-		/* destroy framebuffers */
-		modeset_destroy_fb(fd, &iter->bufs[1]);
-		modeset_destroy_fb(fd, &iter->bufs[0]);
-
-		/* free allocated memory */
-		free(iter);
+	context = data;
+	if (context->current_fb_id == context->fb_id[0])
+		new_fb_id = context->fb_id[1];
+	else
+		new_fb_id = context->fb_id[0];
+			
+	drmModePageFlip(fd, context->crtc_id, new_fb_id,
+			DRM_MODE_PAGE_FLIP_EVENT, context);
+	context->current_fb_id = new_fb_id;
+	context->swap_count++;
+	if (context->swap_count == 60) {
+		gettimeofday(&end, NULL);
+		t = end.tv_sec + end.tv_usec * 1e-6 -
+			(context->start.tv_sec + context->start.tv_usec * 1e-6);
+		fprintf(stderr, "freq: %.02fHz\n", context->swap_count / t);
+		context->swap_count = 0;
+		context->start = end;
 	}
+} 
+
+int main(int argc, char *argv[])
+{
+	int fd, pitch, bo_handle, fb_id, second_fb_id;
+	drmModeRes *resources;
+	drmModeConnector *connector;
+	drmModeEncoder *encoder;
+	drmModeModeInfo mode;
+	drmModeCrtcPtr orig_crtc;
+	struct kms_driver *kms_driver;
+	struct kms_bo *kms_bo, *second_kms_bo;
+	void *map_buf;
+	int ret, i;
+	
+#if 0
+	fd = drmOpen("i915", NULL);
+#else
+	fd = open("/dev/dri/card0", O_RDWR);
+#endif
+	if(fd < 0){
+		fprintf(stderr, "drmOpen failed: %s\n", strerror(errno));
+		goto out;
+	}
+
+	resources = drmModeGetResources(fd);
+	if(resources == NULL){
+		fprintf(stderr, "drmModeGetResources failed: %s\n", strerror(errno));
+		goto close_fd;
+	}
+
+	/* find the first available connector with modes */
+	for(i=0; i < resources->count_connectors; ++i){
+		connector = drmModeGetConnector(fd, resources->connectors[i]);
+		if(connector != NULL){
+			fprintf(stderr, "connector %d found\n", connector->connector_id);
+			if(connector->connection == DRM_MODE_CONNECTED
+				&& connector->count_modes > 0)
+				break;
+			drmModeFreeConnector(connector);
+		}
+		else
+			fprintf(stderr, "get a null connector pointer\n");
+	}
+	if(i == resources->count_connectors){
+		fprintf(stderr, "No active connector found.\n");
+		goto free_drm_res;
+	}
+
+	mode = connector->modes[0];
+	fprintf(stderr, "(%dx%d)\n", mode.hdisplay, mode.vdisplay);
+
+	/* find the encoder matching the first available connector */
+	for(i=0; i < resources->count_encoders; ++i){
+		encoder = drmModeGetEncoder(fd, resources->encoders[i]);
+		if(encoder != NULL){
+			fprintf(stderr, "encoder %d found\n", encoder->encoder_id);
+			if(encoder->encoder_id == connector->encoder_id);
+				break;
+			drmModeFreeEncoder(encoder);
+		} else
+			fprintf(stderr, "get a null encoder pointer\n");
+	}
+	if(i == resources->count_encoders){
+		fprintf(stderr, "No matching encoder with connector, shouldn't happen\n");
+		goto free_drm_res;
+	}
+
+	/* init kms bo stuff */	
+	ret = kms_create(fd, &kms_driver);
+	if(ret){
+		fprintf(stderr, "kms_create failed: %s\n", strerror(errno));
+		goto free_drm_res;
+	}
+
+	create_bo(kms_driver, mode.hdisplay, mode.vdisplay, 
+		&pitch, &kms_bo, &bo_handle, draw_buffer);
+
+	/* add FB which is associated with bo */
+	ret = drmModeAddFB(fd, mode.hdisplay, mode.vdisplay, 24, 32, pitch, bo_handle, &fb_id);
+	if(ret){
+		fprintf(stderr, "drmModeAddFB failed (%ux%u): %s\n",
+			mode.hdisplay, mode.vdisplay, strerror(errno));
+		goto free_first_bo;
+	}
+
+	orig_crtc = drmModeGetCrtc(fd, encoder->crtc_id);
+	if (orig_crtc == NULL)
+	  goto free_first_bo;
+
+	/* kernel mode setting, wow! */
+	ret = drmModeSetCrtc(
+				fd, encoder->crtc_id, fb_id, 
+				0, 0, 	/* x, y */ 
+				&connector->connector_id, 
+				1, 		/* element count of the connectors array above*/
+				&mode);
+	if(ret){
+		fprintf(stderr, "drmModeSetCrtc failed: %s\n", strerror(errno));
+		goto free_first_fb;
+	}
+
+	create_bo(kms_driver, mode.hdisplay, mode.vdisplay, 
+		&pitch, &second_kms_bo, &bo_handle, draw_buffer);
+
+	/* add another FB which is associated with bo */
+	ret = drmModeAddFB(fd, mode.hdisplay, mode.vdisplay, 24, 32, pitch, bo_handle, &second_fb_id);
+	if(ret){
+		fprintf(stderr, "drmModeAddFB failed (%ux%u): %s\n",
+			mode.hdisplay, mode.vdisplay, strerror(errno));
+		goto free_second_bo;
+	}
+	
+	struct flip_context flip_context;
+	memset(&flip_context, 0, sizeof flip_context);
+
+	ret = drmModePageFlip(
+		fd, encoder->crtc_id, second_fb_id,
+		DRM_MODE_PAGE_FLIP_EVENT, &flip_context);
+	if (ret) {
+		fprintf(stderr, "failed to page flip: %s\n", strerror(errno));
+		goto free_second_fb;
+	}
+
+	flip_context.fb_id[0] = fb_id;
+	flip_context.fb_id[1] = second_fb_id;
+	flip_context.current_fb_id = second_fb_id;
+	flip_context.crtc_id = encoder->crtc_id;
+	flip_context.swap_count = 0;
+	gettimeofday(&flip_context.start, NULL);
+
+	/* disable stdin buffered i/o and local echo */
+	struct termios old_tio, new_tio;
+	tcgetattr(STDIN_FILENO,&old_tio);
+	new_tio = old_tio;
+	new_tio.c_lflag &= (~ICANON & ~ECHO);
+	tcsetattr(STDIN_FILENO, TCSANOW, &new_tio);
+
+	drmEventContext evctx;
+	memset(&evctx, 0, sizeof evctx);
+	evctx.version = DRM_EVENT_CONTEXT_VERSION;
+	evctx.vblank_handler = NULL;
+	evctx.page_flip_handler = page_flip_handler;
+
+	while(1){
+		struct timeval timeout = { 
+			.tv_sec = 3, 
+			.tv_usec = 0 
+		};
+		fd_set fds;
+
+		FD_ZERO(&fds);
+		FD_SET(STDIN_FILENO, &fds);
+		FD_SET(fd, &fds);
+		ret = select(max(STDIN_FILENO, fd) + 1, &fds, NULL, NULL, &timeout);
+
+		if (ret <= 0) {
+			continue;
+		} else if (FD_ISSET(STDIN_FILENO, &fds)) {
+			char c = getchar();
+			if(c == 'q' || c == 27)
+				break;
+		} else {
+			/* drm device fd data ready */
+			ret = drmHandleEvent(fd, &evctx);
+			if (ret != 0) {
+				fprintf(stderr, "drmHandleEvent failed: %s\n", strerror(errno));
+				break;
+			}
+		}
+	}
+
+	ret = drmModeSetCrtc(fd, orig_crtc->crtc_id, orig_crtc->buffer_id,
+					orig_crtc->x, orig_crtc->y,
+					&connector->connector_id, 1, &orig_crtc->mode);
+	if (ret) {
+		fprintf(stderr, "drmModeSetCrtc() restore original crtc failed: %m\n");
+	}
+
+	/* restore the old terminal settings */
+	tcsetattr(STDIN_FILENO,TCSANOW,&old_tio);
+
+
+free_second_fb:
+	drmModeRmFB(fd, second_fb_id);
+	
+free_second_bo:
+	kms_bo_destroy(&second_kms_bo);
+	
+free_first_fb:
+	drmModeRmFB(fd, fb_id);
+	
+free_first_bo:
+	kms_bo_destroy(&kms_bo);
+
+free_kms_driver:
+	kms_destroy(&kms_driver);
+	
+free_drm_res:
+	drmModeFreeResources(resources);
+
+close_fd:
+	drmClose(fd);
+	
+out:
+	return EXIT_SUCCESS;
 }

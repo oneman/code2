@@ -4,7 +4,7 @@ int main(int argc, char **argv) {
   int HALT = 1000000;
   int len = 0;
   char str[256];
-  char buf[256];
+  u8 buf[256];
   mset(str, 0, 256);  
   mset(buf, 0, 256);
   int TOP = 0;
