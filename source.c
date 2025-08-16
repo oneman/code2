@@ -640,18 +640,32 @@ void page_flip_handler(int fd, unsigned int frame,
 } 
 
 int main(int argc, char *argv[]) {
-  if (argc > 1) printf("%d retarded arguments.\n", argc - 1);
+
+  sigset_t mask;
+  sigemptyset(&mask);
+  sigfillset(&mask);
+  if (sigprocmask(SIG_BLOCK, &mask, NULL) != 0) exit(1);
+  int SFD = signalfd(-1, &mask, SFD_NONBLOCK | SFD_CLOEXEC);
+
+  setvbuf(stdin, NULL, _IONBF, 0);
+  setvbuf(stdout, NULL, _IONBF, 0);
+  setvbuf(stderr, NULL, _IONBF, 0);
+
   int R;
-  int MFD;
   unsigned long SZ = 4205260800;
   unsigned char *DAT;
 
-  if ((MFD = memfd_create("pixmap-framebuffer", 0)) < 0) return 1;
+  int MFD = memfd_create("pixmap-framebuffer", 0);
   do { R = ftruncate(MFD, SZ); } while (R < 0 && errno == EINTR);
 	DAT = mmap(NULL, SZ, PROT_READ | PROT_WRITE, MAP_SHARED, MFD, 0);
 	if (!DAT) return 13*13;
-	printf("mmap DAT %p + 4205260800, nice!\n", DAT);
 
+  int EFD = epoll_create1(0);
+  int TFD = timerfd_create(CLOCK_MONOTONIC,
+    TFD_NONBLOCK | TFD_CLOEXEC);
+  
+  printf("good\n"); exit(0);
+  
 	for (int i = 0; i < 676; i++) {
 	  /* continue; */
 	  char c1 = 96 + 1 + (i / 26);
@@ -668,20 +682,6 @@ int main(int argc, char *argv[]) {
     }
     unsigned char *dat = cairo_image_surface_get_data(cst);
     unsigned long x0 = (i % 26) * (1920*3);
-    /*y0 = (i / 26) * (161740800); (49920*3=149760) * 1080 < x 28080 */
-    //printf("%zu // 676 :: %zu :: %zu :: %zu\n", i + 1, x0, y0, x0 * y0);
-    printf("%zu :: %c %zu [%zu] :: %c %zu :: xof %zu pxyoff [[%zu]] %zu\n",
-		    i + 1,
-		    c1,
-		    ((i / 26) + 1),
-		    ((i / 26) + 0) * 161740800,
-		    c2,
-		    ((i % 26) + 1),
-		    (((i / 26) + 0) * 161740800) + x0,
-		    x0,
-		    (676 - (i + 1)));
-    //(4205260800/26/6220800 /26/(26*1920*3))//1026675 = 4205260800/4096
-    // (4205260800/149760) == 28080
     int stride = 1920 * 26 * 3;
     for (int yy = 0; yy < 1080; yy++) {
       int pyy = yy * stride;
@@ -695,7 +695,6 @@ int main(int argc, char *argv[]) {
       }
     }
   }
-
 
   printf("GMP %s\n", gmp_version);
   printf("Cairo %s\n", cairo_version_string());
@@ -875,33 +874,26 @@ int main(int argc, char *argv[]) {
 	evctx.vblank_handler = NULL;
 	evctx.page_flip_handler = page_flip_handler;
 
-	while(1){
-		struct timeval timeout = { 
-			.tv_sec = 3, 
-			.tv_usec = 0 
-		};
-		fd_set fds;
+  struct epoll_event ev;
+  ev.events = EPOLLIN;
+  ev.data.fd = SFD;
+  R = epoll_ctl(EFD, EPOLL_CTL_ADD, SFD, &ev);
+  if (R) { printf("epoll_ctlfail: %s\n", strerror(errno)); return 6; }
 
-		FD_ZERO(&fds);
-		FD_SET(STDIN_FILENO, &fds);
-		FD_SET(fd, &fds);
-		ret = select(max(STDIN_FILENO, fd) + 1, &fds, NULL, NULL, &timeout);
+  for (;;) {  
+    ret = epoll_wait(EFD, &ev, 1, -1);
+    if (ret == -1) {
+      printf("epoll_waitfail: %s\n", strerror(errno));
+      return 15;
+    }
+    if (ret == 0) {
+      printf("epoll_wait %d\n", ret);
+      continue;
+    }
+    /*if ((ev.events & EPOLLIN) && (ev.data.fd < 5)) {}
 
-		if (ret <= 0) {
-			continue;
-		} else if (FD_ISSET(STDIN_FILENO, &fds)) {
-			char c = getchar();
-			if(c == 'q' || c == 27)
-				break;
-		} else {
-			/* drm device fd data ready */
-			ret = drmHandleEvent(fd, &evctx);
-			if (ret != 0) {
-				fprintf(stderr, "drmHandleEvent failed: %s\n", strerror(errno));
-				break;
-			}
-		}
-	}
+    ret = drmHandleEvent(fd, &evctx);*/
+  }
 
 	ret = drmModeSetCrtc(fd, orig_crtc->crtc_id, orig_crtc->buffer_id,
 					orig_crtc->x, orig_crtc->y,
