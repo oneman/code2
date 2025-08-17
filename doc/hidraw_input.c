@@ -117,11 +117,14 @@ void sprintx(char *dst, const char *src, int n)  {
     *dst++ = xx[c >> 4];
     *dst++ = xx[c & 0x0f];
   }
-} 
+}
 
 int main(int argc, char **argv) {
-  int id = 0, sz = 0, ret = 0;
-  int keyboard = 0, mouse = 0;
+  int id = 0;
+  int sz = 0;
+  int ret = 0;
+  int keyboard = 0;
+  int mouse = 0;
   struct hidraw_report_descriptor rpt;
   char *dev = "/dev/hidraw0";
   memset(&rpt, 0, sizeof(rpt));

@@ -199,8 +199,8 @@ drm_public int kms_create(int fd, struct kms_driver **out) {
 	return linux_create(fd, out);
 }
 
-drm_public int kms_get_prop(struct kms_driver *kms, unsigned key, unsigned *out)
-{
+drm_public int kms_get_prop(struct kms_driver *kms, unsigned key,
+ unsigned *out) {
 	switch (key) {
 	case KMS_BO_TYPE:
 		break;
@@ -209,16 +209,17 @@ drm_public int kms_get_prop(struct kms_driver *kms, unsigned key, unsigned *out)
 	}
 	return kms->get_prop(kms, key, out);
 }
-drm_public int kms_destroy(struct kms_driver **kms)
-{
+
+drm_public int kms_destroy(struct kms_driver **kms) {
 	if (!(*kms))
 		return 0;
 	free(*kms);
 	*kms = NULL;
 	return 0;
 }
-drm_public int kms_bo_create(struct kms_driver *kms, const unsigned *attr, struct kms_bo **out)
-{
+
+drm_public int kms_bo_create(struct kms_driver *kms, const unsigned *attr,
+ struct kms_bo **out) {
 	unsigned width = 0;
 	unsigned height = 0;
 	enum kms_bo_type type = KMS_BO_TYPE_SCANOUT_X8R8G8B8;
@@ -248,8 +249,8 @@ drm_public int kms_bo_create(struct kms_driver *kms, const unsigned *attr, struc
 		return -EINVAL;
 	return kms->bo_create(kms, width, height, type, attr, out);
 }
-drm_public int kms_bo_get_prop(struct kms_bo *bo, unsigned key, unsigned *out)
-{
+
+drm_public int kms_bo_get_prop(struct kms_bo *bo, unsigned key, unsigned *out) {
 	switch (key) {
 	case KMS_PITCH:
 		*out = bo->pitch;
@@ -262,16 +263,16 @@ drm_public int kms_bo_get_prop(struct kms_bo *bo, unsigned key, unsigned *out)
 	}
 	return 0;
 }
-drm_public int kms_bo_map(struct kms_bo *bo, void **out)
-{
+
+drm_public int kms_bo_map(struct kms_bo *bo, void **out) {
 	return bo->kms->bo_map(bo, out);
 }
-drm_public int kms_bo_unmap(struct kms_bo *bo)
-{
+
+drm_public int kms_bo_unmap(struct kms_bo *bo) {
 	return bo->kms->bo_unmap(bo);
 }
-drm_public int kms_bo_destroy(struct kms_bo **bo)
-{
+
+drm_public int kms_bo_destroy(struct kms_bo **bo) {
 	int ret;
 	if (!(*bo))
 		return 0;
@@ -290,15 +291,13 @@ drm_private int nouveau_create(int fd, struct kms_driver **out);
 drm_private int radeon_create(int fd, struct kms_driver **out);
 drm_private int exynos_create(int fd, struct kms_driver **out);
 
-struct dumb_bo
-{
+struct dumb_bo {
 	struct kms_bo base;
 	unsigned map_count;
 };
-static int
-dumb_get_prop(struct kms_driver *kms, unsigned key, unsigned *out)
-{
-	switch (key) {
+
+static int dumb_get_prop(struct kms_driver *kms, unsigned key, unsigned *out) {
+  switch (key) {
 	case KMS_BO_TYPE:
 		*out = KMS_BO_TYPE_SCANOUT_X8R8G8B8 | KMS_BO_TYPE_CURSOR_64X64_A8R8G8B8;
 		break;
@@ -307,18 +306,15 @@ dumb_get_prop(struct kms_driver *kms, unsigned key, unsigned *out)
 	}
 	return 0;
 }
-static int
-dumb_destroy(struct kms_driver *kms)
-{
+
+static int dumb_destroy(struct kms_driver *kms) {
 	free(kms);
 	return 0;
 }
-static int
-dumb_bo_create(struct kms_driver *kms,
-		 const unsigned width, const unsigned height,
-		 const enum kms_bo_type type, const unsigned *attr,
-		 struct kms_bo **out)
-{
+
+static int dumb_bo_create(struct kms_driver *kms, const unsigned width,
+ const unsigned height, const enum kms_bo_type type, const unsigned *attr,
+ struct kms_bo **out) {
 	struct drm_mode_create_dumb arg;
 	struct dumb_bo *bo;
 	int i, ret;
@@ -354,17 +350,15 @@ err_free:
 	free(bo);
 	return ret;
 }
-static int
-dumb_bo_get_prop(struct kms_bo *bo, unsigned key, unsigned *out)
-{
+
+static int dumb_bo_get_prop(struct kms_bo *bo, unsigned key, unsigned *out) {
 	switch (key) {
 	default:
 		return -EINVAL;
 	}
 }
-static int
-dumb_bo_map(struct kms_bo *_bo, void **out)
-{
+
+static int dumb_bo_map(struct kms_bo *_bo, void **out) {
 	struct dumb_bo *bo = (struct dumb_bo *)_bo;
 	struct drm_mode_map_dumb arg;
 	void *map = NULL;
@@ -387,16 +381,14 @@ dumb_bo_map(struct kms_bo *_bo, void **out)
 	*out = bo->base.ptr;
 	return 0;
 }
-static int
-dumb_bo_unmap(struct kms_bo *_bo)
-{
+
+static int dumb_bo_unmap(struct kms_bo *_bo) {
 	struct dumb_bo *bo = (struct dumb_bo *)_bo;
 	bo->map_count--;
-	return 0;
+  return 0;
 }
-static int
-dumb_bo_destroy(struct kms_bo *_bo)
-{
+
+static int dumb_bo_destroy(struct kms_bo *_bo) {
 	struct dumb_bo *bo = (struct dumb_bo *)_bo;
 	struct drm_mode_destroy_dumb arg;
 	int ret;
@@ -413,9 +405,8 @@ dumb_bo_destroy(struct kms_bo *_bo)
 	free(bo);
 	return 0;
 }
-drm_private int
-dumb_create(int fd, struct kms_driver **out)
-{
+
+drm_private int dumb_create(int fd, struct kms_driver **out) {
 	struct kms_driver *kms;
 	int ret;
 	uint64_t cap = 0;
@@ -437,8 +428,6 @@ dumb_create(int fd, struct kms_driver **out)
 	return 0;
 }
 
-#include <cairo/cairo.h>
-
 struct flip_context{
 	int fb_id[2];
 	int current_fb_id;
@@ -446,8 +435,6 @@ struct flip_context{
 	struct timeval start;
 	int swap_count;
 };
-
-#define max(a, b) ((a) > (b) ? (a) : (b))
 
 typedef void (*draw_func_t)(char *addr, int w, int h, int pitch);
 
@@ -700,22 +687,18 @@ int main(int argc, char *argv[]) {
 	struct kms_bo *kms_bo, *second_kms_bo;
 	void *map_buf;
 	int ret, i;
-	
   int DFD = open("/dev/dri/card0", O_RDWR);
-
-	if(DFD < 0){
+	if (DFD < 0){
 		fprintf(stderr, "drmOpen failed: %s\n", strerror(errno));
 		goto out;
 	}
-
 	resources = drmModeGetResources(DFD);
-	if(resources == NULL){
+	if (resources == NULL){
 		fprintf(stderr, "drmModeGetResources failed: %s\n", strerror(errno));
 		goto close_fd;
 	}
-
 	/* find the first available connector with modes */
-	for(i=0; i < resources->count_connectors; ++i){
+	for (i=0; i < resources->count_connectors; ++i){
 		connector = drmModeGetConnector(DFD, resources->connectors[i]);
 		if(connector != NULL){
 			fprintf(stderr, "connector %d found\n", connector->connector_id);
@@ -736,17 +719,17 @@ int main(int argc, char *argv[]) {
 	fprintf(stderr, "(%dx%d)\n", mode.hdisplay, mode.vdisplay);
 
 	/* find the encoder matching the first available connector */
-	for(i=0; i < resources->count_encoders; ++i){
-		encoder = drmModeGetEncoder(DFD, resources->encoders[i]);
-		if(encoder != NULL){
-			fprintf(stderr, "encoder %d found\n", encoder->encoder_id);
-			if(encoder->encoder_id == connector->encoder_id);
-				break;
+  for (i = 0; i < resources->count_encoders; ++i) {
+    encoder = drmModeGetEncoder(DFD, resources->encoders[i]);
+    if(encoder != NULL) {
+      fprintf(stderr, "encoder %d found\n", encoder->encoder_id);
+			if (encoder->encoder_id == connector->encoder_id) break;
 			drmModeFreeEncoder(encoder);
-		} else
-			fprintf(stderr, "get a null encoder pointer\n");
+		} else {
+		  fprintf(stderr, "get a null encoder pointer\n");
+		}
 	}
-	if(i == resources->count_encoders){
+	if (i == resources->count_encoders) {
 		fprintf(stderr, "No matching encoder with connector, shouldn't happen\n");
 		goto free_drm_res;
 	}
@@ -816,7 +799,7 @@ int main(int argc, char *argv[]) {
 
 	/* disable stdin buffered i/o and local echo */
 	struct termios old_tio, new_tio;
-	tcgetattr(STDIN_FILENO,&old_tio);
+	tcgetattr(STDIN_FILENO, &old_tio);
 	new_tio = old_tio;
 	new_tio.c_lflag &= (~ICANON & ~ECHO);
 	tcsetattr(STDIN_FILENO, TCSANOW, &new_tio);
@@ -833,7 +816,7 @@ int main(int argc, char *argv[]) {
   R = epoll_ctl(PD, EPOLL_CTL_ADD, 0, &ev);
   if (R) { printf("epoll_ctlfail: %s\n", strerror(errno)); return 6; }
 
-  for (;;) {  
+  for (;;) {
     ret = epoll_wait(PD, &ev, 1, -1);
     if (ret == -1) {
       printf("epoll_waitfail: %s\n", strerror(errno));
@@ -844,16 +827,14 @@ int main(int argc, char *argv[]) {
       continue;
     }
     /*if ((ev.events & EPOLLIN) && (ev.data.fd < 5)) {}
-
     ret = drmHandleEvent(fd, &evctx);*/
   }
 
-	ret = drmModeSetCrtc(fd, orig_crtc->crtc_id, orig_crtc->buffer_id,
-					orig_crtc->x, orig_crtc->y,
-					&connector->connector_id, 1, &orig_crtc->mode);
-	if (ret) {
-		fprintf(stderr, "drmModeSetCrtc() restore original crtc failed: %m\n");
-	}
+  ret = drmModeSetCrtc(fd, orig_crtc->crtc_id, orig_crtc->buffer_id,
+   orig_crtc->x, orig_crtc->y, &connector->connector_id, 1, &orig_crtc->mode);
+  if (ret) {
+	  fprintf(stderr, "drmModeSetCrtc() restore original crtc failed: %m\n");
+  }
 
 	/* restore the old terminal settings */
 	tcsetattr(STDIN_FILENO,TCSANOW,&old_tio);
