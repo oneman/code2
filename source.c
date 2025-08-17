@@ -453,7 +453,7 @@ typedef void (*draw_func_t)(char *addr, int w, int h, int pitch);
 
 void draw_buffer(char *addr, int w, int h, int pitch)
 {
-	int ret, i, j;
+	int i, j;
 
 	/* paint the buffer with colored tiles */
 	for (j = 0; j < h; j++) {
@@ -504,19 +504,17 @@ void draw_buffer_with_cairo(char *addr, int w, int h, int pitch)
 	cairo_destroy(cr);
 }
 
-void create_bo(struct kms_driver *kms_driver, 
-	int w, int h, int *out_pitch, struct kms_bo **out_kms_bo, 
-	int *out_handle, draw_func_t draw)
-{
-	void *map_buf;
-	struct kms_bo *bo;
-	int pitch, handle;
-	unsigned bo_attribs[] = {
+void create_bo(struct kms_driver *kms_driver, int w, int h, int *out_pitch,
+  struct kms_bo **out_kms_bo, int *out_handle, draw_func_t draw) {
+  void *map_buf;
+  struct kms_bo *bo;
+  int pitch, handle;
+  unsigned bo_attribs[] = {
 		KMS_WIDTH,   w,
 		KMS_HEIGHT,  h,
 		KMS_BO_TYPE, KMS_BO_TYPE_SCANOUT_X8R8G8B8,
 		KMS_TERMINATE_PROP_LIST
-	};
+  };
 	int ret;
 
 	/* ceate kms buffer object, opaque struct identied by struct kms_bo pointer */
@@ -609,17 +607,19 @@ int main(int argc, char *argv[]) {
   unsigned long SZ = 4205260800;
   unsigned char *DAT;
 
-  int MFD = memfd_create("pixmap-framebuffer", 0);
-  do { R = ftruncate(MFD, SZ); } while (R < 0 && errno == EINTR);
-	DAT = mmap(NULL, SZ, PROT_READ | PROT_WRITE, MAP_SHARED, MFD, 0);
+  int MD = memfd_create("pixmap-framebuffer", MFD_CLOEXEC);
+  do { R = ftruncate(MD, SZ); } while (R < 0 && errno == EINTR);
+	DAT = mmap(NULL, SZ, PROT_READ | PROT_WRITE, MAP_SHARED, MD, 0);
 	if (!DAT) return 13*13;
 
-  int EFD = epoll_create1(EPOLL_CLOEXEC);
+  int PD = epoll_create1(EPOLL_CLOEXEC);
   int ED = eventfd(2601, EFD_NONBLOCK | EFD_CLOEXEC);
-  int TFD = timerfd_create(CLOCK_MONOTONIC,
-    TFD_NONBLOCK | TFD_CLOEXEC);
-  int SD = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
-  int IFD = inotify_init1(IN_NONBLOCK | IN_CLOEXEC);
+  int TD = timerfd_create(CLOCK_MONOTONIC, TFD_NONBLOCK | TFD_CLOEXEC);
+  int SD = socket(AF_PACKET, SOCK_RAW | SOCK_NONBLOCK | SOCK_CLOEXEC,
+    htons(ETH_P_ALL));
+  int ID = inotify_init1(IN_NONBLOCK | IN_CLOEXEC);
+  int WD = inotify_add_watch(ID, "/dev", IN_CREATE | IN_DELETE);
+
   printf("good\n"); exit(0);
   
 	for (int i = 0; i < 676; i++) {
@@ -829,12 +829,12 @@ int main(int argc, char *argv[]) {
 
   struct epoll_event ev;
   ev.events = EPOLLIN;
-  ev.data.fd = SFD;
-  R = epoll_ctl(EFD, EPOLL_CTL_ADD, SFD, &ev);
+  ev.data.fd = 0;
+  R = epoll_ctl(PD, EPOLL_CTL_ADD, 0, &ev);
   if (R) { printf("epoll_ctlfail: %s\n", strerror(errno)); return 6; }
 
   for (;;) {  
-    ret = epoll_wait(EFD, &ev, 1, -1);
+    ret = epoll_wait(PD, &ev, 1, -1);
     if (ret == -1) {
       printf("epoll_waitfail: %s\n", strerror(errno));
       return 15;
