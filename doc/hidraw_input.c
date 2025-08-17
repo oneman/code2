@@ -12,7 +12,7 @@
 #include <linux/input.h>
 #include <linux/hidraw.h>
 
-char *keymap[] = {
+char *usbkeyboardlabeltable[] = {
 	"", "", "", "",
 	"aA", "bB", "cC", "dD", "eE", "fF", "gG", "hH", "iI", "jJ", "kK", "lL", "mM",
 	"nN", "oO", "pP", "qQ", "rR", "sS", "tT", "uU", "vV", "wW", "xX", "yY", "zZ",
@@ -220,12 +220,12 @@ int main(int argc, char **argv) {
       if (b[2]) {
         if (textkey(b[2])) { 
           if (shifting(b[0])) {
-            printf("%c\n", keymap[b[2]][1]);
+            printf("%c\n", usbkeyboardlabeltable[b[2]][1]);
           } else {
-            printf("%c\n", keymap[b[2]][0]);
+            printf("%c\n", usbkeyboardlabeltable[b[2]][0]);
           }
         } else {
-          printf("%s\n", keymap[b[2]]);
+          printf("%s\n", usbkeyboardlabeltable[b[2]]);
         }
       }
     }
