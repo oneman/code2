@@ -956,7 +956,6 @@ int main(int argc, char *argv[]) {
   ev.data.fd = 0;
   R = epoll_ctl(PD, EPOLL_CTL_ADD, 0, &ev);
   if (R) { printf("epoll_ctlfail: %s\n", strerror(errno)); return 6; }
-
   for (;;) {
     ret = epoll_wait(PD, &ev, 1, -1);
     if (ret == -1) {
@@ -978,7 +977,7 @@ int main(int argc, char *argv[]) {
   }
 
 	/* restore the old terminal settings */
-	tcsetattr(STDIN_FILENO,TCSANOW,&old_tio);
+	tcsetattr(STDIN_FILENO, TCSANOW, &old_tio);
 
 
 free_second_fb:
