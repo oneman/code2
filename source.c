@@ -83,9 +83,9 @@ drm_private int exynos_create(int fd, struct kms_driver **out);
    do { \
       (void) sizeof(char [1 - 2*!(COND)]); \
    } while (0)
-#include <sys/mman.h>
+
 #if defined(__BIONIC__) && !defined(__LP64__)
-#include <errno.h> /* for EINVAL */
+
 static inline void *drm_mmap(void *addr, size_t length, int prot, int flags,
                              int fd, loff_t offset)
 {
@@ -553,11 +553,7 @@ void page_flip_handler(int fd, unsigned int frame,
 		context->swap_count = 0;
 		context->start = end;
 	}
-} 
-
-#include <linux/types.h>
-#include <linux/input.h>
-#include <linux/hidraw.h>
+}
 
 char *usbkeyboardlabeltable[] = {
 	"", "", "", "",
