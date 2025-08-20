@@ -786,8 +786,6 @@ int main(int argc, char *argv[]) {
       }
     }
   }
-  printf("ok /*\n");
-  exit(0);
   for (int i = 0; i < 676; i++) {
 	  /* continue; */
 	  char c1 = 96 + 1 + (i / 26);
@@ -796,6 +794,7 @@ int main(int argc, char *argv[]) {
 	  snprintf(filename, 256, "map/%c/%c/%s%s.png",
 	                               c1, c2, nato[c1 - 97], nato[c2 - 97]);
 	  cairo_surface_t *cst = cairo_image_surface_create_from_png(filename);
+	  printf("Loading %3d %s\n", i, filename);
 	  if (cairo_image_surface_get_width(cst) != 1920) exit(1);
     if (cairo_image_surface_get_height(cst) != 1080) exit(1);
     if (cairo_image_surface_get_stride(cst) != 1920 * 4) exit(1);
@@ -817,6 +816,8 @@ int main(int argc, char *argv[]) {
       }
     }
   }
+  printf("ok /*\n");
+  exit(0);
   int fd, pitch, bo_handle, fb_id, second_fb_id;
 	drmModeRes *resources;
 	drmModeConnector *connector;
