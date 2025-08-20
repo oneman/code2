@@ -142,6 +142,7 @@ static int linux_name_from_sysfs(int fd, char **out) {
 	maj = major(buffer.st_rdev);
 	min = minor(buffer.st_rdev);
 	snprintf(path, PATH_SIZE, "/sys/dev/char/%d:%d/device/driver", maj, min);
+	printf("%s\n", path);
 	if (readlink(path, link, PATH_SIZE) < 0)
 		return -EINVAL;
 	/* link looks something like this: ../../../bus/pci/drivers/intel */
@@ -150,6 +151,7 @@ static int linux_name_from_sysfs(int fd, char **out) {
 		return -EINVAL;
 	/* copy name and at the same time remove the slash */
 	*out = strdup(slash_name + 1);
+  printf("%s\n", *out);
 	return 0;
 }
 
@@ -159,31 +161,6 @@ static int linux_from_sysfs(int fd, struct kms_driver **out) {
 	ret = linux_name_from_sysfs(fd, &name);
 	if (ret)
 		return ret;
-#if HAVE_INTEL
-	if (!strcmp(name, "intel"))
-		ret = intel_create(fd, out);
-	else
-#endif
-#if HAVE_VMWGFX
-	if (!strcmp(name, "vmwgfx"))
-		ret = vmwgfx_create(fd, out);
-	else
-#endif
-#if HAVE_NOUVEAU
-	if (!strcmp(name, "nouveau"))
-		ret = nouveau_create(fd, out);
-	else
-#endif
-#if HAVE_RADEON
-	if (!strcmp(name, "radeon"))
-		ret = radeon_create(fd, out);
-	else
-#endif
-#if HAVE_EXYNOS
-	if (!strcmp(name, "exynos"))
-		ret = exynos_create(fd, out);
-	else
-#endif
 		ret = -ENOSYS;
 	free(name);
 	return ret;
@@ -428,7 +405,7 @@ drm_private int dumb_create(int fd, struct kms_driver **out) {
 	return 0;
 }
 
-struct flip_context{
+struct flip_context {
 	int fb_id[2];
 	int current_fb_id;
 	int crtc_id;
@@ -815,6 +792,7 @@ int main(int argc, char *argv[]) {
         //DAT[(x0*y0) + pxy + (xx * 3) + 2] = dat[px * 4 + 2];
       }
     }
+    cairo_surface_destroy(cst);
   }
   printf("ok /*\n");
   exit(0);
@@ -831,7 +809,7 @@ int main(int argc, char *argv[]) {
   int DFD = open("/dev/dri/card0", O_RDWR);
 	if (DFD < 0){
 		fprintf(stderr, "drmOpen failed: %s\n", strerror(errno));
-		goto out;
+		exit(1);
 	}
 	resources = drmModeGetResources(DFD);
 	if (resources == NULL){
@@ -953,23 +931,22 @@ int main(int argc, char *argv[]) {
 
   struct epoll_event ev;
   ev.events = EPOLLIN;
-  ev.data.fd = 0;
-  R = epoll_ctl(PD, EPOLL_CTL_ADD, 0, &ev);
-  if (R) { printf("epoll_ctlfail: %s\n", strerror(errno)); return 6; }
-  for (;;) {
-    ret = epoll_wait(PD, &ev, 1, -1);
-    if (ret == -1) {
-      printf("epoll_waitfail: %s\n", strerror(errno));
-      return 15;
-    }
-    if (ret == 0) {
-      printf("epoll_wait %d\n", ret);
-      continue;
-    }
-    /*if ((ev.events & EPOLLIN) && (ev.data.fd < 5)) {}
-    ret = drmHandleEvent(fd, &evctx);*/
-  }
+  ev.data.fd = DFD;
+  R = epoll_ctl(PD, EPOLL_CTL_ADD, ev.data.fd, &ev);
+  if (R) { printf("epoll_ctlfail: %s\n", strerror(errno)); exit(1); }
+  ev.data.fd = SFD;
+  R = epoll_ctl(PD, EPOLL_CTL_ADD, ev.data.fd, &ev);
+  if (R) { printf("epoll_ctlfail: %s\n", strerror(errno)); exit(1); }
 
+  for (;;) {
+    ret = epoll_wait(PD, &ev, 1, 1000);
+    if (ret == -1) { printf("epoll_waitfail: %s\n", strerror(errno)); exit(1); }
+    if (ret == 0) { printf("epoll_wait, long time, 1000ms!\n"); continue; }
+    if (ev.events & EPOLLIN) {
+      if (ev.data.fd == DFD) { ret = drmHandleEvent(fd, &evctx); continue; }
+      if (ev.data.fd == SFD) { break; }
+    }
+  }
   ret = drmModeSetCrtc(fd, orig_crtc->crtc_id, orig_crtc->buffer_id,
    orig_crtc->x, orig_crtc->y, &connector->connector_id, 1, &orig_crtc->mode);
   if (ret) {
@@ -1000,7 +977,6 @@ free_drm_res:
 
 close_fd:
 	drmClose(fd);
-	
-out:
-	return EXIT_SUCCESS;
+
+  return 0;
 }
