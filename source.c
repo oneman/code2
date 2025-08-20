@@ -689,124 +689,10 @@ void sprintx(char *dst, const char *src, int n)  {
   }
 }
 
-int open_input_devices(int argc, char **argv) {
-  int id = 0;
-  int sz = 0;
-  int ret = 0;
-  int keyboard = 0;
-  int mouse = 0;
-  struct hidraw_report_descriptor rpt;
-  char *dev = "/dev/hidraw0";
-  memset(&rpt, 0, sizeof(rpt));
-  if (argc > 1) dev = argv[1];
-  id = open(dev, O_RDONLY | O_NONBLOCK);
-  if (id < 0) {
-    perror("Unable to open device");
-    return 1;
-  }
-  ret = ioctl(id, HIDIOCGRDESCSIZE, &sz);
-  if (ret < 0) {
-    perror("HIDIOCGRDESCSIZE");
-    return 1;
-  }
-  if (sz < 4) {
-    perror("wtf");
-    return 1;
-  }
-  rpt.size = sz;
-  ret = ioctl(id, HIDIOCGRDESC, &rpt);
-  if (ret < 0) {
-    perror("HIDIOCGRDESC");
-    return 1;
-  }
-  unsigned char *s = rpt.value;
-  if ((s[0] != 5) || (s[1] != 1) || (s[2] != 9)
-   || ((s[3] != 2) && (s[3] != 6))) {
-    perror("not the right kind of input");
-    return 1;
-  }
-  if (s[3] == 2) mouse = 1;
-  if (s[3] == 6) keyboard = 1;
-  int ed;
-  struct epoll_event ev;
-  struct epoll_event events[1];
-  memset(&ev, 0, sizeof(ev));
-  ed = epoll_create1(EPOLL_CLOEXEC);
-  if (ed < 0) {
-    perror("Unable to create epoll");
-    return 1;
-  }
-  ev.events = EPOLLIN;
-  ev.data.fd = id;
-  ret = epoll_ctl(ed, EPOLL_CTL_ADD, id, &ev);
-  if (ret == -1) {
-    perror("Unable to ctl epoll");
-    return 1;
-  }
-  for (;;) {
-    ret = epoll_wait(ed, events, 1, -1);
-    if (ret != 1) {
-      perror("epoll_wait problem");
-      return 1;
-    }
-    if (mouse) {
-      char b[4];
-      ret = read(id, b, 4);
-      if (ret != 4) {
-        perror("read mouse problem");
-        return 1;
-      }
-      char out[8];
-      sprintx(out, b, 4);
-      write(1, out, 8);
-      write(1, "\n", 1);
-      printf("%d %d %d %d\n", scanx(out), scanx(out + 2),
-       scanx(out + 4), scanx(out + 6));
-    }
-    if (keyboard) {
-      char b[8];
-      ret = read(id, b, 8);
-      if (ret != 8) {
-        perror("read keyboard problem");
-        return 1;
-      }
-      char out[16];
-      sprintx(out, b, 8);
-      /*
-      write(1, out, 16);
-      write(1, "\n", 1);
-      printf("%d %d %d %d %d %d %d %d\n",
-       scanx(out + 0), scanx(out + 2),
-       scanx(out + 4), scanx(out + 6),
-       scanx(out + 8), scanx(out + 10),
-       scanx(out + 12), scanx(out + 14));
-      printmod(b);
-      */
-      if ((b[0]) && (b[2])) {
-	if (controling(b[0])) printf("Control-");
-	if (alting(b[0])) printf("Alt-");
-	if (metaing(b[0])) printf("Meta-");
-      }
-      if (b[2]) {
-        if (textkey(b[2])) { 
-          if (shifting(b[0])) {
-            printf("%c\n", usbkeyboardlabeltable[b[2]][1]);
-          } else {
-            printf("%c\n", usbkeyboardlabeltable[b[2]][0]);
-          }
-        } else {
-          printf("%s\n", usbkeyboardlabeltable[b[2]]);
-        }
-      }
-    }
-  }
-  /* yeah bye */
-  close(id);
-  close(ed);
-  return 0;
-}
-
 int main(int argc, char *argv[]) {
+  int R = 0;
+  unsigned long SZ = 4205260800;
+  unsigned char *DAT = 0;
   if (setuid(0) || setgid(0)) return 1;
   sigset_t mask;
   sigemptyset(&mask);
@@ -817,10 +703,6 @@ int main(int argc, char *argv[]) {
   setvbuf(stdin, NULL, _IONBF, 0);
   setvbuf(stdout, NULL, _IONBF, 0);
   setvbuf(stderr, NULL, _IONBF, 0);
-
-  int R;
-  unsigned long SZ = 4205260800;
-  unsigned char *DAT;
 
   int MD = memfd_create("pixmap-framebuffer", MFD_CLOEXEC);
   do { R = ftruncate(MD, SZ); } while (R < 0 && errno == EINTR);
@@ -835,9 +717,78 @@ int main(int argc, char *argv[]) {
   int ID = inotify_init1(IN_NONBLOCK | IN_CLOEXEC);
   int WD = inotify_add_watch(ID, "/dev", IN_CREATE | IN_DELETE);
 
-  printf("good\n"); exit(0);
-  
-	for (int i = 0; i < 676; i++) {
+  printf("GMP %s\n", gmp_version);
+  printf("Cairo %s\n", cairo_version_string());
+  pw_init(&argc, &argv);
+  char *pw_hdr_ver = pw_get_headers_version();
+  const char *pw_lib_ver = pw_get_library_version();
+  if (strsz(pw_hdr_ver) != strsz(pw_lib_ver)) return 42;
+  if (mcmp(pw_hdr_ver, pw_lib_ver, strsz(pw_lib_ver))) return 666;
+  printf("Pipewire %s\n", pw_hdr_ver);
+  mpz_t a, b, c, ap, p, r, x;
+  mpz_init_set_ui(b, 0);
+  mpz_init_set_ui(c, 0);
+  mpz_init_set_ui(r, 0);
+  mpz_init_set_str(a, "4205260800", 10);
+  mpz_init_set_str(ap, "4205260799", 10);
+  mpz_init_set_str(p, "57896044618658097711785492504343953926634992332820282019728792003956564819949", 10);
+  mpz_mod(r, p, a);
+  gmp_printf("%Zd\n", p);
+  mpz_init_set_str(x, "18446744073709551616", 10);
+  mpz_mod(r, p, x);
+  gmp_printf("%Zd\n", r);
+  mpz_t e;
+  mpz_init(e);
+  mpz_fac_ui(e, 26);
+  gmp_printf("26!\n%Zd\n", e);
+  mpz_t f;
+  mpz_init(f);
+  mpz_fac_ui(f, 126);
+  gmp_printf("126!\n%Zd\n", f);
+  mpz_t g;
+  mpz_init(g);
+  mpz_fac_ui(g, 209);
+  gmp_printf("209!\n%Zd\n", g);
+
+  int HiD[26];
+  char HiD_type[26];
+  for (int i = 0; i < 26; i++) {
+    HiD[i] = 0;
+    HiD_type[i] = 0;
+  }
+  for (int i = 0; i < 26; i++) {
+    struct hidraw_report_descriptor rpt;
+    memset(&rpt, 0, sizeof(rpt));
+    char devname[16];
+    snprintf(devname, 16, "/dev/hidraw%d", i);
+    R = open(devname, O_RDONLY | O_NONBLOCK);
+    if (R < 0) continue;
+    HiD[i] = R;
+    R = ioctl(HiD[i], HIDIOCGRDESCSIZE, &rpt.size);
+    if ((R < 0) || (rpt.size < 4)) { perror("HIDIOCGRDESCSIZE"); continue; }
+    R = ioctl(HiD[i], HIDIOCGRDESC, &rpt);
+    if (R < 0) { perror("HIDIOCGRDESC"); continue; }
+    unsigned char *s = rpt.value;
+    if ((s[0] != 5) || (s[1] != 1) || (s[2] != 9)) continue;
+    if ((s[3] != 2) && (s[3] != 6)) continue;
+    if (s[3] == 2) HiD_type[i] = 'm';
+    if (s[3] == 6) HiD_type[i] = 'k';
+  }
+  for (int i = 0; i < 26; i++) {
+    if (HiD[i] > 0) {
+      if (HiD_type[i] == 'k') printf("keyboard on %d (fd %d)\n", i, HiD[i]);
+      if (HiD_type[i] == 'm') printf("mouse on %d (fd %d)\n", i, HiD[i]);
+      if (HiD_type[i] == 0) {
+        R = close(HiD[i]);
+        if (R == -1) { perror("close"); }
+        printf("something else was on %d (fd %d)\n", i, HiD[i]);
+        HiD[i] = 0;
+      }
+    }
+  }
+  printf("ok /*\n");
+  exit(0);
+  for (int i = 0; i < 676; i++) {
 	  /* continue; */
 	  char c1 = 96 + 1 + (i / 26);
 	  char c2 = 96 + 1 + (i % 26);
@@ -866,45 +817,6 @@ int main(int argc, char *argv[]) {
       }
     }
   }
-
-  printf("GMP %s\n", gmp_version);
-  printf("Cairo %s\n", cairo_version_string());
-
-  pw_init(&argc, &argv);
-  char *pw_hdr_ver = pw_get_headers_version();
-  const char *pw_lib_ver = pw_get_library_version();
-  if (strsz(pw_hdr_ver) != strsz(pw_lib_ver)) return 42;
-  if (mcmp(pw_hdr_ver, pw_lib_ver, strsz(pw_lib_ver))) return 666;
-  printf("Pipewire %s\n", pw_hdr_ver);
-
-  printf("Help World!\n");
-
-  mpz_t a, b, c, ap, p, r, x;
-
-  mpz_init_set_ui(b, 0);
-  mpz_init_set_ui(c, 0);
-  mpz_init_set_ui(r, 0);
-  mpz_init_set_str(a, "4205260800", 10);
-  mpz_init_set_str(ap, "4205260799", 10);
-  mpz_init_set_str(p, "57896044618658097711785492504343953926634992332820282019728792003956564819949", 10);
-  mpz_mod(r, p, a);
-  gmp_printf("%Zd\n", p);
-  mpz_init_set_str(x, "18446744073709551616", 10);
-  mpz_mod(r, p, x);
-  gmp_printf("%Zd\n", r);
-  mpz_t e;
-  mpz_init(e);
-  mpz_fac_ui(e, 26);
-  gmp_printf("26!\n%Zd\n", e);
-  mpz_t f;
-  mpz_init(f);
-  mpz_fac_ui(f, 126);
-  gmp_printf("126!\n%Zd\n", f);
-  mpz_t g;
-  mpz_init(g);
-  mpz_fac_ui(g, 209);
-  gmp_printf("209!\n%Zd\n", g);
-
   int fd, pitch, bo_handle, fb_id, second_fb_id;
 	drmModeRes *resources;
 	drmModeConnector *connector;
