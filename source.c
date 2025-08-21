@@ -737,9 +737,6 @@ int main(int argc, char *argv[]) {
   if (strsz(pw_hdr_ver) != strsz(pw_lib_ver)) return 42;
   if (mcmp(pw_hdr_ver, pw_lib_ver, strsz(pw_lib_ver))) return 666;
   printf("Pipewire %s\n", pw_hdr_ver);
-
-  kbye();
-
   mpz_t a, b, c, ap, p, r, x;
   mpz_init_set_ui(b, 0);
   mpz_init_set_ui(c, 0);
@@ -764,7 +761,6 @@ int main(int argc, char *argv[]) {
   mpz_init(g);
   mpz_fac_ui(g, 209);
   gmp_printf("209!\n%Zd\n", g);
-
   int HiD[26];
   char HiD_type[26];
   for (int i = 0; i < 26; i++) {
@@ -832,8 +828,7 @@ int main(int argc, char *argv[]) {
     }
     cairo_surface_destroy(cst);
   }
-  printf("ok /*\n");
-  exit(0);
+  kbye();
   int fd, pitch, bo_handle, fb_id, second_fb_id;
 	drmModeRes *resources;
 	drmModeConnector *connector;
