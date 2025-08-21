@@ -742,57 +742,34 @@ int main(int argc, char *argv[]) {
   sigfillset(&mask);
   R = sigprocmask(SIG_BLOCK, &mask, NULL);
   if (R) EFAIL("5 sigprocmask");
-  int SFD = signalfd(-1, &mask, SFD_NONBLOCK | SFD_CLOEXEC);
+  int SD = signalfd(-1, &mask, SFD_NONBLOCK | SFD_CLOEXEC);
   int MD = memfd_create("pixmap-framebuffer", MFD_CLOEXEC);
   int PD = epoll_create1(EPOLL_CLOEXEC);
   int ED = eventfd(2601, EFD_NONBLOCK | EFD_CLOEXEC);
   int TD = timerfd_create(CLOCK_MONOTONIC, TFD_NONBLOCK | TFD_CLOEXEC);
-  int SD = socket(AF_PACKET,
+  int ND = socket(AF_PACKET,
                   SOCK_RAW | SOCK_NONBLOCK | SOCK_CLOEXEC, htons(ETH_P_ALL));
   int ID = inotify_init1(IN_NONBLOCK | IN_CLOEXEC);
-  if ((6*6+6) != (SFD + MD + PD + ED + TD + SD + ID)) EFAIL("6*6+6=42 PANICAN");
+  if ((6*6+6) != (SD + MD + PD + ED + TD + ND + ID)) EFAIL("6*6+6=42 PANICAN");
   int WD = inotify_add_watch(ID, "/dev", IN_CREATE);
   if (WD == -1) EFAIL("6 inotify_add_watch /dev IN_CREATE");
-  for (int fu = 1;; fu++) {
-    if (fu > 1) printf("ftruncate fu %d!\n", fu);
-    R = ftruncate(MD, 4205260800);
-    if (R == 0) break;
-    if (R == -1) {
-      if ((errno == EINTR) && (fu < 26)) {
-        usleep(fu * 260);
-        continue;
-      }
-      EFAIL("7 ftruncate 4205260800");
-    }
-  }
+  R = ftruncate(MD, 4205260800);
+  if (R == -1) EFAIL("7 ftruncate 4205260800");
   char *DAT = mmap(NULL, 4205260800, PROT_READ | PROT_WRITE, MAP_SHARED, MD, 0);
-	if (!DAT) EFAIL("7 mmap 4205260800");
+  if (!DAT) EFAIL("8 mmap 4205260800");
   printf("Everything worked? Lets touch mem\n");
   mset(DAT, 'K', 4205260800);
   printf("we touched all the memory!\n");
-  for (int fu = 1;; fu++) {
-    if (fu > 1) printf("mlock fu %d!\n", fu);
-    R = mlock(DAT, 4205260800);
-    if (R == 0) break;
-    if (R == -1) {
-      if ((errno == EAGAIN) && (fu < 26)) {
-        usleep(fu * 260);
-        continue;
-      }
-      EFAIL("8 mlock 4205260800");
-    }
-  }
-
-  printf("Cairo %s\n", cairo_version_string());
-
+  R = mlock(DAT, 4205260800);
+  if (R == -1) EFAIL("9 mlock 4205260800");
+  /*  printf("Cairo %s\n", cairo_version_string());
   pw_init(&argc, &argv);
   char *pw_hdr_ver = pw_get_headers_version();
   const char *pw_lib_ver = pw_get_library_version();
   if (strsz(pw_hdr_ver) != strsz(pw_lib_ver)) return 42;
   if (mcmp(pw_hdr_ver, pw_lib_ver, strsz(pw_lib_ver))) return 666;
-  printf("Pipewire %s\n", pw_hdr_ver);
-
-  printf("GMP %s\n", gmp_version);
+  printf("Pipewire %s\n", pw_hdr_ver); */
+  printf("gmp_version: %s\n", gmp_version);
   /* void mp_set_memory_functions
       void *(*alloc_func_ptr) (size_t),
       void *(*realloc_func_ptr) (void *, size_t, size_t),
@@ -916,19 +893,19 @@ int main(int argc, char *argv[]) {
 	struct kms_bo *kms_bo, *second_kms_bo;
 	void *map_buf;
 	int ret, i;
-  int DFD = open("/dev/dri/card0", O_RDWR);
-	if (DFD < 0){
+  int DD = open("/dev/dri/card0", O_RDWR);
+	if (DD < 0){
 		fprintf(stderr, "drmOpen failed: %s\n", strerror(errno));
 		exit(1);
 	}
-	resources = drmModeGetResources(DFD);
+	resources = drmModeGetResources(DD);
 	if (resources == NULL){
 		fprintf(stderr, "drmModeGetResources failed: %s\n", strerror(errno));
 		goto close_fd;
 	}
 	/* find the first available connector with modes */
 	for (i=0; i < resources->count_connectors; ++i){
-		connector = drmModeGetConnector(DFD, resources->connectors[i]);
+		connector = drmModeGetConnector(DD, resources->connectors[i]);
 		if(connector != NULL){
 			fprintf(stderr, "connector %d found\n", connector->connector_id);
 			if(connector->connection == DRM_MODE_CONNECTED
@@ -949,7 +926,7 @@ int main(int argc, char *argv[]) {
 
 	/* find the encoder matching the first available connector */
   for (i = 0; i < resources->count_encoders; ++i) {
-    encoder = drmModeGetEncoder(DFD, resources->encoders[i]);
+    encoder = drmModeGetEncoder(DD, resources->encoders[i]);
     if(encoder != NULL) {
       fprintf(stderr, "encoder %d found\n", encoder->encoder_id);
 			if (encoder->encoder_id == connector->encoder_id) break;
@@ -964,7 +941,7 @@ int main(int argc, char *argv[]) {
 	}
 
 	/* init kms bo stuff */	
-	ret = kms_create(DFD, &kms_driver);
+	ret = kms_create(DD, &kms_driver);
 	if(ret){
 		fprintf(stderr, "kms_create failed: %s\n", strerror(errno));
 		goto free_drm_res;
@@ -974,20 +951,20 @@ int main(int argc, char *argv[]) {
 		&pitch, &kms_bo, &bo_handle, draw_buffer);
 
 	/* add FB which is associated with bo */
-	ret = drmModeAddFB(DFD, mode.hdisplay, mode.vdisplay, 24, 32, pitch, bo_handle, &fb_id);
+	ret = drmModeAddFB(DD, mode.hdisplay, mode.vdisplay, 24, 32, pitch, bo_handle, &fb_id);
 	if(ret){
 		fprintf(stderr, "drmModeAddFB failed (%ux%u): %s\n",
 			mode.hdisplay, mode.vdisplay, strerror(errno));
 		goto free_first_bo;
 	}
 
-	orig_crtc = drmModeGetCrtc(DFD, encoder->crtc_id);
+	orig_crtc = drmModeGetCrtc(DD, encoder->crtc_id);
 	if (orig_crtc == NULL)
 	  goto free_first_bo;
 
 	/* kernel mode setting, wow! */
 	ret = drmModeSetCrtc(
-				DFD, encoder->crtc_id, fb_id, 
+				DD, encoder->crtc_id, fb_id,
 				0, 0, 	/* x, y */ 
 				&connector->connector_id, 
 				1, 		/* element count of the connectors array above*/
@@ -1001,7 +978,7 @@ int main(int argc, char *argv[]) {
 		&pitch, &second_kms_bo, &bo_handle, draw_buffer);
 
 	/* add another FB which is associated with bo */
-	ret = drmModeAddFB(DFD, mode.hdisplay, mode.vdisplay, 24, 32, pitch, bo_handle, &second_fb_id);
+	ret = drmModeAddFB(DD, mode.hdisplay, mode.vdisplay, 24, 32, pitch, bo_handle, &second_fb_id);
 	if(ret){
 		fprintf(stderr, "drmModeAddFB failed (%ux%u): %s\n",
 			mode.hdisplay, mode.vdisplay, strerror(errno));
@@ -1012,7 +989,7 @@ int main(int argc, char *argv[]) {
 	mset(&flip_context, 0, sizeof flip_context);
 
 	ret = drmModePageFlip(
-		DFD, encoder->crtc_id, second_fb_id,
+		DD, encoder->crtc_id, second_fb_id,
 		DRM_MODE_PAGE_FLIP_EVENT, &flip_context);
 	if (ret) {
 		fprintf(stderr, "failed to page flip: %s\n", strerror(errno));
@@ -1041,10 +1018,10 @@ int main(int argc, char *argv[]) {
 
   struct epoll_event ev;
   ev.events = EPOLLIN;
-  ev.data.fd = DFD;
+  ev.data.fd = DD;
   R = epoll_ctl(PD, EPOLL_CTL_ADD, ev.data.fd, &ev);
   if (R) { printf("epoll_ctlfail: %s\n", strerror(errno)); exit(1); }
-  ev.data.fd = SFD;
+  ev.data.fd = SD;
   R = epoll_ctl(PD, EPOLL_CTL_ADD, ev.data.fd, &ev);
   if (R) { printf("epoll_ctlfail: %s\n", strerror(errno)); exit(1); }
 
@@ -1053,8 +1030,8 @@ int main(int argc, char *argv[]) {
     if (ret == -1) { printf("epoll_waitfail: %s\n", strerror(errno)); exit(1); }
     if (ret == 0) { printf("epoll_wait, long time, 1000ms!\n"); continue; }
     if (ev.events & EPOLLIN) {
-      if (ev.data.fd == DFD) { ret = drmHandleEvent(fd, &evctx); continue; }
-      if (ev.data.fd == SFD) { break; }
+      if (ev.data.fd == DD) { ret = drmHandleEvent(fd, &evctx); continue; }
+      if (ev.data.fd == SD) { break; }
     }
   }
   ret = drmModeSetCrtc(fd, orig_crtc->crtc_id, orig_crtc->buffer_id,
