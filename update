@@ -1,0 +1,2 @@
+#!/bin/sh
+git pull && make && sudo gdb --eval-command=run ./program -ex quit
