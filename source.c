@@ -729,8 +729,6 @@ int main(int argc, char *argv[]) {
       EFAIL("8 mlock 4205260800");
     }
   }
-  kbye();
-
   printf("GMP %s\n", gmp_version);
   printf("Cairo %s\n", cairo_version_string());
   pw_init(&argc, &argv);
@@ -739,6 +737,9 @@ int main(int argc, char *argv[]) {
   if (strsz(pw_hdr_ver) != strsz(pw_lib_ver)) return 42;
   if (mcmp(pw_hdr_ver, pw_lib_ver, strsz(pw_lib_ver))) return 666;
   printf("Pipewire %s\n", pw_hdr_ver);
+
+  kbye();
+
   mpz_t a, b, c, ap, p, r, x;
   mpz_init_set_ui(b, 0);
   mpz_init_set_ui(c, 0);
