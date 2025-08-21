@@ -674,8 +674,10 @@ int EFAIL(char *msg) {
 }
 
 int main(int argc, char *argv[]) {
-  int R = 0;
-  if (setuid(0) || setgid(0)) EFAIL("1 run with sudo");
+  int R = setuid(0);
+  if (R) EFAIL("1.0 setuid run with sudo");
+  R = setgid(0);
+  if (R) EFAIL("1.5 setgid run with sudo");
   R = setvbuf(stdin, NULL, _IONBF, 0);
   if (R) EFAIL("2 setvbuf stdin _IONBF");
   R = setvbuf(stdout, NULL, _IONBF, 0);
@@ -695,20 +697,38 @@ int main(int argc, char *argv[]) {
   int SD = socket(AF_PACKET,
                   SOCK_RAW | SOCK_NONBLOCK | SOCK_CLOEXEC, htons(ETH_P_ALL));
   int ID = inotify_init1(IN_NONBLOCK | IN_CLOEXEC);
+  if ((6*6+6) != (SFD + MD + PD + ED + TD + SD + ID)) EFAIL("6*6+6=42 PANICAN");
   int WD = inotify_add_watch(ID, "/dev", IN_CREATE);
   if (WD == -1) EFAIL("6 inotify_add_watch /dev IN_CREATE");
-  if ((6*6+6) != (SFD + MD + PD + ED + TD + SD + ID)) EFAIL("6*6+6=42 PANICAN");
   for (int fu = 1;; fu++) {
-    if (fu > 26/2) EFAIL("ftruncate 4205260800");
+    if (fu > 1) printf("ftruncate fu %d!\n", fu);
     R = ftruncate(MD, 4205260800);
     if (R == 0) break;
-    if (R == -1) { if (errno == EINTR) { usleep(fu * 2601); continue; } }
+    if (R == -1) {
+      if ((errno == EINTR) && (fu < 26)) {
+        usleep(fu * 260);
+        continue;
+      }
+      EFAIL("7 ftruncate 4205260800");
+    }
   }
   char *DAT = mmap(NULL, 4205260800, PROT_READ | PROT_WRITE, MAP_SHARED, MD, 0);
-	if (!DAT) EFAIL("mmap 4205260800");
+	if (!DAT) EFAIL("7 mmap 4205260800");
   printf("Everything worked? Lets touch mem\n");
   mset(DAT, 'K', 4205260800);
-  printf("we touched all the memory! %c %c\n", DAT[4205260800/2], DAT[2600000]);
+  printf("we touched all the memory!\n");
+  for (int fu = 1;; fu++) {
+    if (fu > 1) printf("mlock fu %d!\n", fu);
+    R = mlock(DAT, 4205260800);
+    if (R == 0) break;
+    if (R == -1) {
+      if ((errno == EAGAIN) && (fu < 26)) {
+        usleep(fu * 260);
+        continue;
+      }
+      EFAIL("8 mlock 4205260800");
+    }
+  }
   kbye();
 
   printf("GMP %s\n", gmp_version);
