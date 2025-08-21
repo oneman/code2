@@ -552,6 +552,59 @@ void page_flip_handler(int fd, unsigned int frame,
 		context->start = end;
 	}
 }
+/*
+    if (mouse) {
+      char b[4];
+      ret = read(id, b, 4);
+      if (ret != 4) {
+        perror("read mouse problem");
+        return 1;
+      }
+      char out[8];
+      sprintx(out, b, 4);
+      write(1, out, 8);
+      write(1, "\n", 1);
+      printf("%d %d %d %d\n", scanx(out), scanx(out + 2),
+       scanx(out + 4), scanx(out + 6));
+    }
+
+    if (keyboard) {
+      char b[8];
+      ret = read(id, b, 8);
+      if (ret != 8) {
+        perror("read keyboard problem");
+        return 1;
+      }
+      char out[16];
+      sprintx(out, b, 8);
+*//*
+      write(1, out, 16);
+      write(1, "\n", 1);
+      printf("%d %d %d %d %d %d %d %d\n",
+       scanx(out + 0), scanx(out + 2),
+       scanx(out + 4), scanx(out + 6),
+       scanx(out + 8), scanx(out + 10),
+       scanx(out + 12), scanx(out + 14));
+      printmod(b);
+*//*
+      if ((b[0]) && (b[2])) {
+	if (controling(b[0])) printf("Control-");
+	if (alting(b[0])) printf("Alt-");
+	if (metaing(b[0])) printf("Meta-");
+      }
+      if (b[2]) {
+        if (textkey(b[2])) {
+          if (shifting(b[0])) {
+            printf("%c\n", usbkeyboardlabeltable[b[2]][1]);
+          } else {
+            printf("%c\n", usbkeyboardlabeltable[b[2]][0]);
+          }
+        } else {
+          printf("%s\n", usbkeyboardlabeltable[b[2]]);
+        }
+      }
+    }
+*/
 
 char *usbkeyboardlabeltable[] = {
 	"", "", "", "",
@@ -740,6 +793,11 @@ int main(int argc, char *argv[]) {
   printf("Pipewire %s\n", pw_hdr_ver);
 
   printf("GMP %s\n", gmp_version);
+  /* void mp_set_memory_functions
+      void *(*alloc_func_ptr) (size_t),
+      void *(*realloc_func_ptr) (void *, size_t, size_t),
+      void (*free_func_ptr) (void *, size_t))
+  */
   mpz_t a, b, c, d, r, x;
   mpz_init_set_ui(b, 0);
   mpz_init_set_ui(c, 0);
