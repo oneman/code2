@@ -729,25 +729,25 @@ int main(int argc, char *argv[]) {
       EFAIL("8 mlock 4205260800");
     }
   }
-  printf("GMP %s\n", gmp_version);
+
   printf("Cairo %s\n", cairo_version_string());
+
   pw_init(&argc, &argv);
   char *pw_hdr_ver = pw_get_headers_version();
   const char *pw_lib_ver = pw_get_library_version();
   if (strsz(pw_hdr_ver) != strsz(pw_lib_ver)) return 42;
   if (mcmp(pw_hdr_ver, pw_lib_ver, strsz(pw_lib_ver))) return 666;
   printf("Pipewire %s\n", pw_hdr_ver);
-  mpz_t a, b, c, ap, p, r, x;
+
+  printf("GMP %s\n", gmp_version);
+  mpz_t a, b, c, d, r, x;
   mpz_init_set_ui(b, 0);
   mpz_init_set_ui(c, 0);
   mpz_init_set_ui(r, 0);
   mpz_init_set_str(a, "4205260800", 10);
-  mpz_init_set_str(ap, "4205260799", 10);
-  mpz_init_set_str(p, "57896044618658097711785492504343953926634992332820282019728792003956564819949", 10);
-  mpz_mod(r, p, a);
-  gmp_printf("%Zd\n", p);
+  mpz_init_set_str(d, "4205260799", 10);
   mpz_init_set_str(x, "18446744073709551616", 10);
-  mpz_mod(r, p, x);
+  mpz_mod(r, d, x);
   gmp_printf("%Zd\n", r);
   mpz_t e;
   mpz_init(e);
@@ -761,6 +761,15 @@ int main(int argc, char *argv[]) {
   mpz_init(g);
   mpz_fac_ui(g, 209);
   gmp_printf("209!\n%Zd\n", g);
+  mpz_clear(a);
+  mpz_clear(b);
+  mpz_clear(c);
+  mpz_clear(d);
+  mpz_clear(r);
+  mpz_clear(x);
+  mpz_clear(e);
+  mpz_clear(f);
+  mpz_clear(g);
   int HiD[26];
   char HiD_type[26];
   for (int i = 0; i < 26; i++) {
@@ -776,9 +785,9 @@ int main(int argc, char *argv[]) {
     if (R < 0) continue;
     HiD[i] = R;
     R = ioctl(HiD[i], HIDIOCGRDESCSIZE, &rpt.size);
-    if ((R < 0) || (rpt.size < 4)) { perror("HIDIOCGRDESCSIZE"); continue; }
+    if ((R < 0) || (rpt.size < 4)) EFAIL("HIDIOCGRDESCSIZE");
     R = ioctl(HiD[i], HIDIOCGRDESC, &rpt);
-    if (R < 0) { perror("HIDIOCGRDESC"); continue; }
+    if (R < 0) EFAIL("HIDIOCGRDESC");
     unsigned char *s = rpt.value;
     if ((s[0] != 5) || (s[1] != 1) || (s[2] != 9)) continue;
     if ((s[3] != 2) && (s[3] != 6)) continue;
@@ -802,11 +811,21 @@ int main(int argc, char *argv[]) {
 	  char c1 = 96 + 1 + (i / 26);
 	  char c2 = 96 + 1 + (i % 26);
 	  char filename[256];
-	  snprintf(filename, 256, "map/%c/%c/%s%s.png",
-	                               c1, c2, nato[c1 - 97], nato[c2 - 97]);
-	  cairo_surface_t *cst = cairo_image_surface_create_from_png(filename);
+	  char *map_dir = getenv("OVERRIDE_PROGRAM_PIXMAP_BASEDIR");
+	  if (map_dir) printf("using %s for dat pix map\n", map_dir);
+	  if (!map_dir) map_dir = "/map";
+	  snprintf(filename, 256, "%s/%c/%c/%s%s.png", map_dir, c1, c2,
+	   nato[c1 - 97], nato[c2 - 97]);
 	  printf("Loading %3d %s\n", i, filename);
-	  if (cairo_image_surface_get_width(cst) != 1920) exit(1);
+	  cairo_surface_t *cst = cairo_image_surface_create_from_png(filename);
+	  cairo_status_t cairo_errno = cairo_surface_status(cst);
+	  if (cairo_errno) {
+      printf("PC_LOAD_LETTER %s\n", cairo_status_to_string(cairo_errno));
+      continue;
+	  }
+	  if (cairo_image_surface_get_width(cst) != 1920) {
+	    exit(1);
+	  }
     if (cairo_image_surface_get_height(cst) != 1080) exit(1);
     if (cairo_image_surface_get_stride(cst) != 1920 * 4) exit(1);
     if (cairo_image_surface_get_format(cst) != CAIRO_FORMAT_RGB24) {
