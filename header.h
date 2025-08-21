@@ -70,10 +70,10 @@ int radical(int n) {
   return  n * radn;
 }
 
-u64 mset(char *buf, const char b, u64 sz) {
-  u64 n = 0;
-  for (n = 0; n < sz; n++) buf[n] = b;
-  return sz;
+void mset(void *vbuf, const char b, u64 sz) {
+  char *buf = (char *)vbuf;
+  for (u64 n = 0; n < sz; n++) buf[n] = b;
+  printf("mset %lu\n", sz);
 }
 
 u64 strsz(const char *str) {

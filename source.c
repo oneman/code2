@@ -1,7 +1,5 @@
 #include "header.h"
 
-#define ASZ 4205260800
-
 struct kms_driver;
 struct kms_bo {
   struct kms_driver *kms;
@@ -309,7 +307,7 @@ static int dumb_bo_create(struct kms_driver *kms, const unsigned width,
 	bo = calloc(1, sizeof(*bo));
 	if (!bo)
 		return -ENOMEM;
-	memset(&arg, 0, sizeof(arg));
+	mset(&arg, 0, sizeof(arg));
 	/* All BO_TYPE currently are 32bpp formats */
 	arg.bpp = 32;
 	arg.width = width;
@@ -345,7 +343,7 @@ static int dumb_bo_map(struct kms_bo *_bo, void **out) {
 		*out = bo->base.ptr;
 		return 0;
 	}
-	memset(&arg, 0, sizeof(arg));
+	mset(&arg, 0, sizeof(arg));
 	arg.handle = bo->base.handle;
 	ret = drmIoctl(bo->base.kms->fd, DRM_IOCTL_MODE_MAP_DUMB, &arg);
 	if (ret)
@@ -374,7 +372,7 @@ static int dumb_bo_destroy(struct kms_bo *_bo) {
 		drm_munmap(bo->base.ptr, bo->base.size);
 		bo->base.ptr = NULL;
 	}
-	memset(&arg, 0, sizeof(arg));
+	mset(&arg, 0, sizeof(arg));
 	arg.handle = bo->base.handle;
 	ret = drmIoctl(bo->base.kms->fd, DRM_IOCTL_MODE_DESTROY_DUMB, &arg);
 	if (ret)
@@ -585,7 +583,7 @@ int textkey(char k) {
 void printmod(char *k) {
   int p = 0;
   static char out[64];
-  memset(out, 0, sizeof(out));
+  mset(out, 0, sizeof(out));
   if (k[1] != 0) {
     printf("keyboard scan error");
     exit(1);
@@ -662,33 +660,56 @@ void sprintx(char *dst, const char *src, int n)  {
   }
 }
 
+void kbye(void) {
+  write(1, "0k\n", 3);
+  exit(0);
+}
+
+int EFAIL(char *msg) {
+  perror(msg);
+  write(1, "\nFAIL\n", 6);
+  write(1, msg, strlen(msg));
+  write(1, "\n", 1);
+  return 1;
+}
+
 int main(int argc, char *argv[]) {
   int R = 0;
-  unsigned long SZ = 4205260800;
-  unsigned char *DAT = 0;
-  if (setuid(0) || setgid(0)) return 1;
+  if (setuid(0) || setgid(0)) EFAIL("1 run with sudo");
+  R = setvbuf(stdin, NULL, _IONBF, 0);
+  if (R) EFAIL("2 setvbuf stdin _IONBF");
+  R = setvbuf(stdout, NULL, _IONBF, 0);
+  if (R) EFAIL("3 setvbuf stdout _IONBF");
+  R = setvbuf(stderr, NULL, _IONBF, 0);
+  if (R) EFAIL("4 setvbuf stderr _IONBF");
   sigset_t mask;
   sigemptyset(&mask);
   sigfillset(&mask);
-  if (sigprocmask(SIG_BLOCK, &mask, NULL) != 0) exit(1);
+  R = sigprocmask(SIG_BLOCK, &mask, NULL);
+  if (R) EFAIL("5 sigprocmask");
   int SFD = signalfd(-1, &mask, SFD_NONBLOCK | SFD_CLOEXEC);
-
-  setvbuf(stdin, NULL, _IONBF, 0);
-  setvbuf(stdout, NULL, _IONBF, 0);
-  setvbuf(stderr, NULL, _IONBF, 0);
-
   int MD = memfd_create("pixmap-framebuffer", MFD_CLOEXEC);
-  do { R = ftruncate(MD, SZ); } while (R < 0 && errno == EINTR);
-	DAT = mmap(NULL, SZ, PROT_READ | PROT_WRITE, MAP_SHARED, MD, 0);
-	if (!DAT) return 13*13;
-
   int PD = epoll_create1(EPOLL_CLOEXEC);
   int ED = eventfd(2601, EFD_NONBLOCK | EFD_CLOEXEC);
   int TD = timerfd_create(CLOCK_MONOTONIC, TFD_NONBLOCK | TFD_CLOEXEC);
-  int SD = socket(AF_PACKET, SOCK_RAW | SOCK_NONBLOCK | SOCK_CLOEXEC,
-    htons(ETH_P_ALL));
+  int SD = socket(AF_PACKET,
+                  SOCK_RAW | SOCK_NONBLOCK | SOCK_CLOEXEC, htons(ETH_P_ALL));
   int ID = inotify_init1(IN_NONBLOCK | IN_CLOEXEC);
-  int WD = inotify_add_watch(ID, "/dev", IN_CREATE | IN_DELETE);
+  int WD = inotify_add_watch(ID, "/dev", IN_CREATE);
+  if (WD == -1) EFAIL("6 inotify_add_watch /dev IN_CREATE");
+  if ((6*6+6) != (SFD + MD + PD + ED + TD + SD + ID)) EFAIL("6*6+6=42 PANICAN");
+  for (int fu = 1;; fu++) {
+    if (fu > 26/2) EFAIL("ftruncate 4205260800");
+    R = ftruncate(MD, 4205260800);
+    if (R == 0) break;
+    if (R == -1) { if (errno == EINTR) { usleep(fu * 2601); continue; } }
+  }
+  char *DAT = mmap(NULL, 4205260800, PROT_READ | PROT_WRITE, MAP_SHARED, MD, 0);
+	if (!DAT) EFAIL("mmap 4205260800");
+  printf("Everything worked? Lets touch mem\n");
+  mset(DAT, 'K', 4205260800);
+  printf("we touched all the memory! %c %c\n", DAT[4205260800/2], DAT[2600000]);
+  kbye();
 
   printf("GMP %s\n", gmp_version);
   printf("Cairo %s\n", cairo_version_string());
@@ -731,7 +752,7 @@ int main(int argc, char *argv[]) {
   }
   for (int i = 0; i < 26; i++) {
     struct hidraw_report_descriptor rpt;
-    memset(&rpt, 0, sizeof(rpt));
+    mset(&rpt, 0, sizeof(rpt));
     char devname[16];
     snprintf(devname, 16, "/dev/hidraw%d", i);
     R = open(devname, O_RDONLY | O_NONBLOCK);
@@ -895,7 +916,7 @@ int main(int argc, char *argv[]) {
 	}
 	
 	struct flip_context flip_context;
-	memset(&flip_context, 0, sizeof flip_context);
+	mset(&flip_context, 0, sizeof flip_context);
 
 	ret = drmModePageFlip(
 		DFD, encoder->crtc_id, second_fb_id,
@@ -920,7 +941,7 @@ int main(int argc, char *argv[]) {
 	tcsetattr(STDIN_FILENO, TCSANOW, &new_tio);
 
 	drmEventContext evctx;
-	memset(&evctx, 0, sizeof evctx);
+	mset(&evctx, 0, sizeof evctx);
 	evctx.version = DRM_EVENT_CONTEXT_VERSION;
 	evctx.vblank_handler = NULL;
 	evctx.page_flip_handler = page_flip_handler;
