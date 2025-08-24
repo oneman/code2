@@ -367,47 +367,42 @@ int main(int argc, char *argv[]) {
   printf("mkay, time to directly render ffs\n%s\n", ctime(0));
   int fd, pitch, bo_handle;
   u32 fb_id, second_fb_id;
-	drmModeRes *resources;
-	drmModeConnector *connector;
-	drmModeEncoder *encoder;
-	drmModeModeInfo mode;
-	drmModeCrtcPtr orig_crtc;
-	int ret, i;
+  drmModeRes *resources;
+  drmModeConnector *connector;
+  drmModeEncoder *encoder;
+  drmModeModeInfo mode;
+  drmModeCrtcPtr orig_crtc;
+  int ret, i;
   int DD = open("/dev/dri/card0", O_RDWR);
-	if (DD < 0){
-		fprintf(stderr, "drmOpen failed: %s\n", strerror(errno));
-		exit(1);
-	}
-	resources = drmModeGetResources(DD);
-	if (resources == NULL){
-		fprintf(stderr, "drmModeGetResources failed: %s\n", strerror(errno));
-		//goto close_fd;
-	}
-	/* find the first available connector with modes */
-	for (i=0; i < resources->count_connectors; ++i){
-		connector = drmModeGetConnector(DD, resources->connectors[i]);
-		if(connector != NULL){
-			fprintf(stderr, "connector %d found\n", connector->connector_id);
-			if(connector->connection == DRM_MODE_CONNECTED
-				&& connector->count_modes > 0)
-				break;
-			drmModeFreeConnector(connector);
-		}
-		else
-			fprintf(stderr, "get a null connector pointer\n");
-	}
-	if(i == resources->count_connectors){
-		fprintf(stderr, "No active connector found.\n");
-		//goto free_drm_res;
-	}
-
+  if (DD < 0) {
+    fprintf(stderr, "drmOpen failed: %s\n", strerror(errno));
+    exit(1);
+  }
+  resources = drmModeGetResources(DD);
+  if (resources == NULL) {
+    fprintf(stderr, "drmModeGetResources failed: %s\n", strerror(errno));
+  }
+  for (i = 0; i < resources->count_connectors; ++i) {
+    connector = drmModeGetConnector(DD, resources->connectors[i]);
+    if (connector != NULL) {
+      fprintf(stderr, "connector %d found\n", connector->connector_id);
+      if (connector->connection == DRM_MODE_CONNECTED
+       && connector->count_modes > 0) {
+        break;
+      }
+      drmModeFreeConnector(connector);
+    } else {
+      fprintf(stderr, "get a null connector pointer\n");
+    }
+    if (i == resources->count_connectors) {
+      fprintf(stderr, "No active connector found.\n");
+    }
+  }
 	mode = connector->modes[0];
 	fprintf(stderr, "(%dx%d)\n", mode.hdisplay, mode.vdisplay);
-
-	/* find the encoder matching the first available connector */
   for (i = 0; i < resources->count_encoders; ++i) {
     encoder = drmModeGetEncoder(DD, resources->encoders[i]);
-    if(encoder != NULL) {
+    if (encoder != NULL) {
       fprintf(stderr, "encoder %d found\n", encoder->encoder_id);
 			if (encoder->encoder_id == connector->encoder_id) break;
 			drmModeFreeEncoder(encoder);
@@ -417,60 +412,38 @@ int main(int argc, char *argv[]) {
 	}
 	if (i == resources->count_encoders) {
 		fprintf(stderr, "No matching encoder with connector, shouldn't happen\n");
-		//goto free_drm_res;
 	}
-
 	/* init kms bo stuff *//*	
 	ret = kms_create(DD, &kms_driver);
 	if(ret){
 		fprintf(stderr, "kms_create failed: %s\n", strerror(errno));
 		//goto free_drm_res;
 	}*/
-
 /////create_bo(kms_driver, mode.hdisplay, mode.vdisplay, &pitch, &kms_bo, &bo_handle, draw_buffer);
-
 	/* add FB which is associated with bo */
 	ret = drmModeAddFB(DD, mode.hdisplay, mode.vdisplay, 24, 32, pitch, bo_handle, &fb_id);
-	if(ret){
+	if (ret) {
 		fprintf(stderr, "drmModeAddFB failed (%ux%u): %s\n",
 			mode.hdisplay, mode.vdisplay, strerror(errno));
-		//goto free_first_bo;
 	}
-
 	orig_crtc = drmModeGetCrtc(DD, encoder->crtc_id);
 	if (orig_crtc == NULL)
-	  //goto free_first_bo;
+	ret = drmModeSetCrtc(DD, encoder->crtc_id, fb_id, 0, 0,
+	       &connector->connector_id, 1, &mode);
+  if (ret) { fprintf(stderr, "drmModeSetCrtc failed: %s\n", strerror(errno)); }
+/////////create_bo(kms_driver, mode.hdisplay, mode.vdisplay, &pitch,
+/////&second_kms_bo, &bo_handle, draw_buffer);
+  ret = drmModeAddFB(DD, mode.hdisplay, mode.vdisplay, 24, 32, pitch, bo_handle, &second_fb_id);
+  if (ret) {
+    fprintf(stderr, "drmModeAddFB failed (%ux%u): %s\n", mode.hdisplay,
+     mode.vdisplay, strerror(errno));
+  }	
 
-	/* kernel mode setting, wow! */
-	ret = drmModeSetCrtc(
-				DD, encoder->crtc_id, fb_id,
-				0, 0, 	/* x, y */ 
-				&connector->connector_id, 
-				1, 		/* element count of the connectors array above*/
-				&mode);
-	if(ret){
-		fprintf(stderr, "drmModeSetCrtc failed: %s\n", strerror(errno));
-		//goto free_first_fb;
-	}
-
-/////////create_bo(kms_driver, mode.hdisplay, mode.vdisplay, &pitch, &second_kms_bo, &bo_handle, draw_buffer);
-
-	/* add another FB which is associated with bo */
-	ret = drmModeAddFB(DD, mode.hdisplay, mode.vdisplay, 24, 32, pitch, bo_handle, &second_fb_id);
-	if(ret){
-		fprintf(stderr, "drmModeAddFB failed (%ux%u): %s\n",
-			mode.hdisplay, mode.vdisplay, strerror(errno));
-		//goto free_second_bo;
-	}
-	
 	struct flip_context flip_context;
 	mset(&flip_context, 0, sizeof flip_context);
 
 	ret = drmModePageFlip(DD, encoder->crtc_id, second_fb_id, DRM_MODE_PAGE_FLIP_EVENT, &flip_context);
-	if (ret) {
-		fprintf(stderr, "failed to page flip: %s\n", strerror(errno));
-		//goto free_second_fb;
-	}
+	if (ret) { fprintf(stderr, "failed to page flip: %s\n", strerror(errno)); }
 
 	flip_context.fb_id[0] = fb_id;
 	flip_context.fb_id[1] = second_fb_id;
@@ -500,6 +473,8 @@ int main(int argc, char *argv[]) {
   R = epoll_ctl(PD, EPOLL_CTL_ADD, ev.data.fd, &ev);
   if (R) { printf("epoll_ctlfail: %s\n", strerror(errno)); exit(1); }
 
+  /* ready for */
+
   for (;;) {
     ret = epoll_wait(PD, &ev, 1, 1000);
     if (ret == -1) { printf("epoll_waitfail: %s\n", strerror(errno)); exit(1); }
@@ -509,23 +484,17 @@ int main(int argc, char *argv[]) {
       if (ev.data.fd == SD) { break; }
     }
   }
+  
+  /* done for; restore */
+  tcsetattr(STDIN_FILENO, TCSANOW, &old_tio);
   ret = drmModeSetCrtc(fd, orig_crtc->crtc_id, orig_crtc->buffer_id,
    orig_crtc->x, orig_crtc->y, &connector->connector_id, 1, &orig_crtc->mode);
   if (ret) {
 	  fprintf(stderr, "drmModeSetCrtc() restore original crtc failed: %m\n");
   }
-
-  /* restore the old terminal settings */
-  tcsetattr(STDIN_FILENO, TCSANOW, &old_tio);
   drmModeRmFB(fd, second_fb_id);
-  //kms_bo_destroy(&second_kms_bo);
 	drmModeRmFB(fd, fb_id);
-	//kms_bo_destroy(&kms_bo);
-  //kms_destroy(&kms_driver);
   drmModeFreeResources(resources);
-  
-  
   close(DD);
-
   return 0;
 }
