@@ -413,14 +413,12 @@ int main(int argc, char *argv[]) {
 	if (i == resources->count_encoders) {
 		fprintf(stderr, "No matching encoder with connector, shouldn't happen\n");
 	}
-	/* init kms bo stuff *//*	
-	ret = kms_create(DD, &kms_driver);
-	if(ret){
-		fprintf(stderr, "kms_create failed: %s\n", strerror(errno));
-		//goto free_drm_res;
-	}*/
-/////create_bo(kms_driver, mode.hdisplay, mode.vdisplay, &pitch, &kms_bo, &bo_handle, draw_buffer);
-	/* add FB which is associated with bo */
+  struct drm_mode_create_dumb create_arg;
+  R = drmIoctl(DD, DRM_IOCTL_MODE_CREATE_DUMB, &arg);
+  struct drm_mode_map_dumb map_arg;
+  ret = drmIoctl(DD, DRM_IOCTL_MODE_MAP_DUMB, &arg);
+  map = mmap(0, size, PROT_READ | PROT_WRITE, MAP_SHARED, DD, arg.offset);
+
 	ret = drmModeAddFB(DD, mode.hdisplay, mode.vdisplay, 24, 32, pitch, bo_handle, &fb_id);
 	if (ret) {
 		fprintf(stderr, "drmModeAddFB failed (%ux%u): %s\n",
