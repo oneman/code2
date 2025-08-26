@@ -212,9 +212,10 @@ int EFAIL(char *msg) {
 }
 
 int main(int argc, char *argv[]) {
+  time_t T = time(0);
   char L[80];
   mset(L, 0, 80);
-  int R = snprintf(L, 80, "%s\nprogram begins\n", ctime(0));
+  int R = snprintf(L, 80, "%s\nprogram begins\n", ctime(&T));
   write(1, L, R);
   R = setuid(0);
   if (R) EFAIL("1.0 setuid run with sudo");
