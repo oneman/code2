@@ -423,7 +423,7 @@ int main(int argc, char *argv[]) {
   if (R) EFAIL("DRM_IOCTL_MODE_MAP_DUMB");
   char *pixmap1 = mmap(0, cd_arg.size, PROT_READ | PROT_WRITE, MAP_SHARED, DD,
                           md_arg.offset);
-  mset(pixmap1, 255, cd_arg.pitch * H * 4);
+  mset(pixmap1, 255, cd_arg.pitch * H);
 	R = drmModeAddFB(DD, W, H, 24, 32, cd_arg.pitch, cd_arg.handle, &fb_id);
 	if (R) EFAIL("drmModeAddFB");
 
@@ -448,7 +448,7 @@ int main(int argc, char *argv[]) {
   if (R) EFAIL("DRM_IOCTL_MODE_MAP_DUMB");
   char *pixmap2 = mmap(0, cd2_arg.size, PROT_READ | PROT_WRITE, MAP_SHARED, DD,
                           md2_arg.offset);
-  mset(pixmap2, 255, cd2_arg.pitch * H * 4);
+  mset(pixmap2, 255, cd2_arg.pitch * H);
   R = drmModeAddFB(DD, W, H, 24, 32, cd2_arg.pitch, cd2_arg.handle, &fb2_id);
   if (R) EFAIL("drmModeAddFB failed");
 
@@ -456,7 +456,7 @@ int main(int argc, char *argv[]) {
 	mset(&flip_context, 0, sizeof flip_context);
   flip_context.pixmap1 = pixmap1;
   flip_context.pixmap2 = pixmap2;
-  flip_context.pixmap_sz = H * 4 * cd2_arg.pitch;
+  flip_context.pixmap_sz = H * cd2_arg.pitch;
   flip_context.fb_id[0] = fb_id;
   flip_context.fb_id[1] = fb2_id;
   flip_context.current_fb_id = fb2_id;
