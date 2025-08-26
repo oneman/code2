@@ -88,10 +88,10 @@ u64 mcmp(const char *a, const char *b, u64 sz) {
   return 0;
 }
 
-#define W 1920
-#define H 1080
+#define WWWW 1920
+#define HHHH 1080
 
-static unsigned char img[W * H * 3];
+static unsigned char img[WWWW * HHHH * 3];
 
 float capsuleSDF(float px, float py, float ax, float ay, float bx, float by, float r) {
     float pax = px - ax, pay = py - ay, bax = bx - ax, bay = by - ay;
@@ -101,7 +101,7 @@ float capsuleSDF(float px, float py, float ax, float ay, float bx, float by, flo
 }
 
 void alphablend(int x, int y, float alpha, float r, float g, float b) {
-    unsigned char* p = img + (y * W + x) * 3;
+    unsigned char* p = img + (y * WWWW + x) * 3;
     p[0] = (unsigned char)(p[0] * (1 - alpha) + r * alpha * 255);
     p[1] = (unsigned char)(p[1] * (1 - alpha) + g * alpha * 255);
     p[2] = (unsigned char)(p[2] * (1 - alpha) + b * alpha * 255);
@@ -120,7 +120,7 @@ void lineSDFAABB(float ax, float ay, float bx, float by, float r) {
 int main() {
     memset(img, 255, sizeof(img));
     
-    float cx = W * 0.5f, cy = H * 0.5f;
+    float cx = WWWW * 0.5f, cy = H * 0.5f;
     for (int j = 0; j < 5; j++) {
         float r1 = fminf(W, H) * (j + 0.5f) * 0.085f;
         float r2 = fminf(W, H) * (j + 1.5f) * 0.085f;

@@ -9,28 +9,27 @@ struct flip_context {
 };
 
 void pageflip(int fd, u32 frame, u32 sec, u32 usec, void *data) {
-	struct flip_context *context;
-	unsigned int new_fb_id;
-	struct timeval end;
-	double t;
-
-	context = (struct flip_context *)data;
-	if (context->current_fb_id == context->fb_id[0])
-		new_fb_id = context->fb_id[1];
-	else
-		new_fb_id = context->fb_id[0];
-			
-	drmModePageFlip(fd, context->crtc_id, new_fb_id,
-			DRM_MODE_PAGE_FLIP_EVENT, context);
-	context->current_fb_id = new_fb_id;
-	context->swap_count++;
-	if (context->swap_count == 60) {
-		gettimeofday(&end, NULL);
-		t = end.tv_sec + end.tv_usec * 1e-6 -
-			(context->start.tv_sec + context->start.tv_usec * 1e-6);
-		fprintf(stderr, "freq: %.02fHz\n", context->swap_count / t);
-		context->swap_count = 0;
-		context->start = end;
+  struct flip_context *context;
+  unsigned int new_fb_id;
+  struct timeval end;
+  double t;
+  context = (struct flip_context *)data;
+  if (context->current_fb_id == context->fb_id[0]) {
+    new_fb_id = context->fb_id[1];
+  } else {
+    new_fb_id = context->fb_id[0];
+  }
+  drmModePageFlip(fd, context->crtc_id, new_fb_id, DRM_MODE_PAGE_FLIP_EVENT,
+   context);
+  context->current_fb_id = new_fb_id;
+  context->swap_count++;
+  if (context->swap_count == 60) {
+    gettimeofday(&end, NULL);
+    t = end.tv_sec + end.tv_usec * 1e-6
+     - (context->start.tv_sec + context->start.tv_usec * 1e-6);
+    printf("freq: %.02fHz\n", context->swap_count / t);
+    context->swap_count = 0;
+    context->start = end;
 	}
 }
 /*
@@ -204,7 +203,7 @@ int EFAIL(char *msg) {
   write(1, "\nFAIL\n", 6);
   write(1, msg, strlen(msg));
   write(1, "\n", 1);
-  return 1;
+  exit(1);
 }
 
 int main(int argc, char *argv[]) {
@@ -365,87 +364,97 @@ int main(int argc, char *argv[]) {
     cairo_surface_destroy(cst);
   }
   printf("mkay, time to directly render ffs\n%s\n", ctime(0));
-  int fd, pitch, bo_handle;
-  u32 fb_id, second_fb_id;
-  drmModeRes *resources;
-  drmModeConnector *connector;
-  drmModeEncoder *encoder;
-  drmModeModeInfo mode;
+  u32 fb_id = 0;
+  u32 fb2_id = 0;
+  drmModeRes *resources = NULL;
+  drmModeConnector *connector = NULL;
+  drmModeEncoder *encoder = NULL;
   drmModeCrtcPtr orig_crtc;
-  int ret, i;
+  mset(&orig_crtc, 0, sizeof(orig_crtc));
   int DD = open("/dev/dri/card0", O_RDWR);
-  if (DD < 0) {
-    fprintf(stderr, "drmOpen failed: %s\n", strerror(errno));
-    exit(1);
-  }
+  if (DD < 0) EFAIL("drmOpen failed");
   resources = drmModeGetResources(DD);
-  if (resources == NULL) {
-    fprintf(stderr, "drmModeGetResources failed: %s\n", strerror(errno));
-  }
-  for (i = 0; i < resources->count_connectors; ++i) {
+  if (resources == NULL) EFAIL("drmModeGetResources");
+  for (int i = 0; i < resources->count_connectors; ++i) {
     connector = drmModeGetConnector(DD, resources->connectors[i]);
     if (connector != NULL) {
-      fprintf(stderr, "connector %d found\n", connector->connector_id);
+      printf("connector %d found\n", connector->connector_id);
       if (connector->connection == DRM_MODE_CONNECTED
        && connector->count_modes > 0) {
         break;
       }
       drmModeFreeConnector(connector);
-    } else {
-      fprintf(stderr, "get a null connector pointer\n");
-    }
-    if (i == resources->count_connectors) {
-      fprintf(stderr, "No active connector found.\n");
-    }
+    } else { EFAIL("get a null connector pointer"); }
+    if (i == resources->count_connectors) EFAIL("No active connector found");
   }
-	mode = connector->modes[0];
-	fprintf(stderr, "(%dx%d)\n", mode.hdisplay, mode.vdisplay);
-  for (i = 0; i < resources->count_encoders; ++i) {
+  drmModeModeInfo M = connector->modes[0];
+  int W = M.hdisplay;
+  int H = M.vdisplay;
+	printf("(%dx%d)\n", W, H);
+  for (int i = 0; i < resources->count_encoders; ++i) {
     encoder = drmModeGetEncoder(DD, resources->encoders[i]);
     if (encoder != NULL) {
-      fprintf(stderr, "encoder %d found\n", encoder->encoder_id);
+      printf("encoder %d found", encoder->encoder_id);
 			if (encoder->encoder_id == connector->encoder_id) break;
 			drmModeFreeEncoder(encoder);
 		} else {
-		  fprintf(stderr, "get a null encoder pointer\n");
+		  EFAIL("get a null encoder pointer");
 		}
 	}
-	if (i == resources->count_encoders) {
-		fprintf(stderr, "No matching encoder with connector, shouldn't happen\n");
-	}
-  struct drm_mode_create_dumb create_arg;
-  R = drmIoctl(DD, DRM_IOCTL_MODE_CREATE_DUMB, &arg);
-  struct drm_mode_map_dumb map_arg;
-  ret = drmIoctl(DD, DRM_IOCTL_MODE_MAP_DUMB, &arg);
-  map = mmap(0, size, PROT_READ | PROT_WRITE, MAP_SHARED, DD, arg.offset);
 
-	ret = drmModeAddFB(DD, mode.hdisplay, mode.vdisplay, 24, 32, pitch, bo_handle, &fb_id);
-	if (ret) {
-		fprintf(stderr, "drmModeAddFB failed (%ux%u): %s\n",
-			mode.hdisplay, mode.vdisplay, strerror(errno));
-	}
+  struct drm_mode_create_dumb cd_arg;
+  mset(&cd_arg, 0, sizeof(cd_arg));
+  cd_arg.bpp = 32;
+  cd_arg.width = W;
+  cd_arg.height = H;
+  R = ioctl(DD, DRM_IOCTL_MODE_CREATE_DUMB, &cd_arg);
+  if (R) EFAIL("DRM_IOCTL_MODE_CREATE_DUMB");
+  struct drm_mode_map_dumb md_arg;
+  mset(&md_arg, 0, sizeof(md_arg));
+  R = ioctl(DD, DRM_IOCTL_MODE_MAP_DUMB, &md_arg);
+  if (R) EFAIL("DRM_IOCTL_MODE_MAP_DUMB");
+  char *pixmap1 = mmap(0, cd_arg.size, PROT_READ | PROT_WRITE, MAP_SHARED, DD,
+                          md_arg.offset);
+	R = drmModeAddFB(DD, W, H, 24, 32, cd_arg.pitch, cd_arg.handle, &fb_id);
+	if (R) EFAIL("drmModeAddFB");
+
 	orig_crtc = drmModeGetCrtc(DD, encoder->crtc_id);
-	if (orig_crtc == NULL)
-	ret = drmModeSetCrtc(DD, encoder->crtc_id, fb_id, 0, 0,
-	       &connector->connector_id, 1, &mode);
-  if (ret) { fprintf(stderr, "drmModeSetCrtc failed: %s\n", strerror(errno)); }
-/////////create_bo(kms_driver, mode.hdisplay, mode.vdisplay, &pitch,
-/////&second_kms_bo, &bo_handle, draw_buffer);
-  ret = drmModeAddFB(DD, mode.hdisplay, mode.vdisplay, 24, 32, pitch, bo_handle, &second_fb_id);
-  if (ret) {
-    fprintf(stderr, "drmModeAddFB failed (%ux%u): %s\n", mode.hdisplay,
-     mode.vdisplay, strerror(errno));
-  }	
+	if (!orig_crtc) EFAIL("drmModeGetCrtc");
+	R = drmModeSetCrtc(DD, encoder->crtc_id, fb_id, 0, 0, &connector->connector_id, 1, &M);
+  if (R) EFAIL("drmModeSetCrtc failed");
+
+  struct drm_mode_create_dumb cd2_arg;
+  mset(&cd2_arg, 0, sizeof(cd2_arg));
+  cd2_arg.bpp = 32;
+  cd2_arg.width = W;
+  cd2_arg.height = H;
+  R = ioctl(DD, DRM_IOCTL_MODE_CREATE_DUMB, &cd2_arg);
+  if (R) EFAIL("DRM_IOCTL_MODE_CREATE_DUMB");
+  struct drm_mode_map_dumb md2_arg;
+  mset(&md2_arg, 0, sizeof(md2_arg));
+  R = ioctl(DD, DRM_IOCTL_MODE_MAP_DUMB, &md2_arg);
+  if (R) EFAIL("DRM_IOCTL_MODE_MAP_DUMB");
+  char *pixmap2 = mmap(0, cd2_arg.size, PROT_READ | PROT_WRITE, MAP_SHARED, DD,
+                          md2_arg.offset);
+  R = drmModeAddFB(DD, W, H, 24, 32, cd2_arg.pitch, cd2_arg.handle, &fb2_id);
+  if (R) EFAIL("drmModeAddFB failed");
 
 	struct flip_context flip_context;
 	mset(&flip_context, 0, sizeof flip_context);
-
-	ret = drmModePageFlip(DD, encoder->crtc_id, second_fb_id, DRM_MODE_PAGE_FLIP_EVENT, &flip_context);
-	if (ret) { fprintf(stderr, "failed to page flip: %s\n", strerror(errno)); }
-
+	R = drmModePageFlip(DD, encoder->crtc_id, fb2_id, DRM_MODE_PAGE_FLIP_EVENT, &flip_context);
+	if (R) EFAIL("failed to page flip");
+/*
+	struct drm_mode_crtc_page_flip flip;
+	memclear(flip);
+	flip.fb_id = fb_id;
+	flip.crtc_id = crtc_id;
+	flip.user_data = VOID2U64(user_data);
+	flip.flags = flags;
+	return DRM_IOCTL(DD, DRM_IOCTL_MODE_PAGE_FLIP, &flip);
+*/
 	flip_context.fb_id[0] = fb_id;
-	flip_context.fb_id[1] = second_fb_id;
-	flip_context.current_fb_id = second_fb_id;
+	flip_context.fb_id[1] = fb2_id;
+	flip_context.current_fb_id = fb2_id;
 	flip_context.crtc_id = encoder->crtc_id;
 	flip_context.swap_count = 0;
 	gettimeofday(&flip_context.start, NULL);
@@ -466,32 +475,30 @@ int main(int argc, char *argv[]) {
   ev.events = EPOLLIN;
   ev.data.fd = DD;
   R = epoll_ctl(PD, EPOLL_CTL_ADD, ev.data.fd, &ev);
-  if (R) { printf("epoll_ctlfail: %s\n", strerror(errno)); exit(1); }
+  if (R) EFAIL("epoll_ctlfail");
   ev.data.fd = SD;
   R = epoll_ctl(PD, EPOLL_CTL_ADD, ev.data.fd, &ev);
-  if (R) { printf("epoll_ctlfail: %s\n", strerror(errno)); exit(1); }
+  if (R) EFAIL("epoll_ctlfail");
 
   /* ready for */
 
   for (;;) {
-    ret = epoll_wait(PD, &ev, 1, 1000);
-    if (ret == -1) { printf("epoll_waitfail: %s\n", strerror(errno)); exit(1); }
-    if (ret == 0) { printf("epoll_wait, long time, 1000ms!\n"); continue; }
+    R = epoll_wait(PD, &ev, 1, 1000);
+    if (R == -1) { printf("epoll_waitfail: %s\n", strerror(errno)); exit(1); }
+    if (R == 0) { printf("epoll_wait, long time, 1000ms!\n"); continue; }
     if (ev.events & EPOLLIN) {
-      if (ev.data.fd == DD) { ret = drmHandleEvent(fd, &evctx); continue; }
+      if (ev.data.fd == DD) { R = drmHandleEvent(DD, &evctx); continue; }
       if (ev.data.fd == SD) { break; }
     }
   }
   
   /* done for; restore */
   tcsetattr(STDIN_FILENO, TCSANOW, &old_tio);
-  ret = drmModeSetCrtc(fd, orig_crtc->crtc_id, orig_crtc->buffer_id,
+  R = drmModeSetCrtc(DD, orig_crtc->crtc_id, orig_crtc->buffer_id,
    orig_crtc->x, orig_crtc->y, &connector->connector_id, 1, &orig_crtc->mode);
-  if (ret) {
-	  fprintf(stderr, "drmModeSetCrtc() restore original crtc failed: %m\n");
-  }
-  drmModeRmFB(fd, second_fb_id);
-	drmModeRmFB(fd, fb_id);
+  if (R) EFAIL("drmModeSetCrtc() restore original crtc failed");
+  drmModeRmFB(DD, fb2_id);
+	drmModeRmFB(DD, fb_id);
   drmModeFreeResources(resources);
   close(DD);
   return 0;
