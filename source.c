@@ -198,11 +198,6 @@ void sprintx(char *dst, const char *src, int n)  {
   }
 }
 
-void kbye(void) {
-  write(1, "0k\n", 3);
-  exit(0);
-}
-
 int EFAIL(char *msg) {
   perror(msg);
   write(1, "\nFAIL\n", 6);
@@ -216,7 +211,7 @@ int main(int argc, char *argv[]) {
   time_t T0 = T;
   char L[80];
   mset(L, 0, 80);
-  int R = snprintf(L, 80, "%s\nprogram begins\n", ctime(&T));
+  int R = snprintf(L, 80, "%s\nprogram begins\n", ctime(&T0));
   write(1, L, R);
   R = setuid(0);
   if (R) EFAIL("1.0 setuid run with sudo");
@@ -493,8 +488,12 @@ int main(int argc, char *argv[]) {
   if (R) EFAIL("epoll_ctlfail");
 
   /* ready for */
-
-  for (;;) {
+  printf("\nfor\n");
+  for (u64 i = 0;;i++) {
+    T = time(0);
+    mset(L, 0, 80);
+    R = snprintf(L, 80, "%s program loop %lu\n", ctime(&T), i);
+    write(1, L, R);
     R = epoll_wait(PD, &ev, 1, 1000);
     if (R == -1) { printf("epoll_waitfail: %s\n", strerror(errno)); exit(1); }
     if (R == 0) { printf("epoll_wait, long time, 1000ms!\n"); continue; }
@@ -515,5 +514,8 @@ int main(int argc, char *argv[]) {
   drmModeFreeConnector(DCON);
   drmModeFreeResources(DRES);
   close(DD);
-  return 0;
+  T = time(0);
+  printf("done\n%s\n", ctime(&T));
+  write(1, "OKrad\n", 6);
+  exit(0);
 }
