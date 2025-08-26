@@ -368,6 +368,11 @@ int main(int argc, char *argv[]) {
   u32 fb2_id = 0;
   int DD = open("/dev/dri/card0", O_RDWR);
   if (DD < 0) EFAIL("drmOpen failed");
+  drmVersionPtr DV = drmGetVersion(DD);
+  printf("opened device `%s` on driver `%s` (version %d.%d.%d at %s)\n",
+   DV->desc, DV->name, DV->version_major, DV->version_minor,
+   DV->version_patchlevel, DV->date);
+  drmFreeVersion(DV);
   drmModeRes *DRES = drmModeGetResources(DD);
   if (DRES == NULL) EFAIL("drmModeGetResources");
   drmModeConnector *DCON = NULL;
