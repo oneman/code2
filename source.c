@@ -366,42 +366,40 @@ int main(int argc, char *argv[]) {
   printf("mkay, time to directly render ffs\n%s\n", ctime(0));
   u32 fb_id = 0;
   u32 fb2_id = 0;
-  drmModeRes *resources = NULL;
-  drmModeConnector *connector = NULL;
-  drmModeEncoder *encoder = NULL;
-  drmModeCrtcPtr orig_crtc;
-  mset(&orig_crtc, 0, sizeof(orig_crtc));
   int DD = open("/dev/dri/card0", O_RDWR);
   if (DD < 0) EFAIL("drmOpen failed");
-  resources = drmModeGetResources(DD);
-  if (resources == NULL) EFAIL("drmModeGetResources");
-  for (int i = 0; i < resources->count_connectors; ++i) {
-    connector = drmModeGetConnector(DD, resources->connectors[i]);
-    if (connector != NULL) {
-      printf("connector %d found\n", connector->connector_id);
-      if (connector->connection == DRM_MODE_CONNECTED
-       && connector->count_modes > 0) {
+  drmModeRes *DRES = drmModeGetResources(DD);
+  if (DRES == NULL) EFAIL("drmModeGetResources");
+  drmModeConnector *DCON = NULL;
+  for (int i = 0; i < DRES->count_connectors; ++i) {
+    DCON = drmModeGetConnector(DD, DRES->connectors[i]);
+    if (DCON != NULL) {
+      printf("connector %d found\n", DCON->connector_id);
+      if (DCON->connection == DRM_MODE_CONNECTED
+       && DCON->count_modes > 0) {
         break;
       }
-      drmModeFreeConnector(connector);
+      drmModeFreeConnector(DCON);
     } else { EFAIL("get a null connector pointer"); }
-    if (i == resources->count_connectors) EFAIL("No active connector found");
+    if (i == DRES->count_connectors) EFAIL("No active connector found");
   }
-  drmModeModeInfo M = connector->modes[0];
+  drmModeModeInfo M = DCON->modes[0];
   int W = M.hdisplay;
   int H = M.vdisplay;
 	printf("(%dx%d)\n", W, H);
-  for (int i = 0; i < resources->count_encoders; ++i) {
-    encoder = drmModeGetEncoder(DD, resources->encoders[i]);
-    if (encoder != NULL) {
-      printf("encoder %d found", encoder->encoder_id);
-			if (encoder->encoder_id == connector->encoder_id) break;
-			drmModeFreeEncoder(encoder);
+  drmModeEncoder *DENC = NULL;
+  for (int i = 0; i < DRES->count_encoders; ++i) {
+    DENC = drmModeGetEncoder(DD, DRES->encoders[i]);
+    if (DENC != NULL) {
+      printf("encoder %d found\n", DENC->encoder_id);
+			if (DENC->encoder_id == DCON->encoder_id) {
+			  break;
+			}
+			drmModeFreeEncoder(DENC);
 		} else {
 		  EFAIL("get a null encoder pointer");
 		}
 	}
-
   struct drm_mode_create_dumb cd_arg;
   mset(&cd_arg, 0, sizeof(cd_arg));
   cd_arg.bpp = 32;
@@ -419,9 +417,11 @@ int main(int argc, char *argv[]) {
 	R = drmModeAddFB(DD, W, H, 24, 32, cd_arg.pitch, cd_arg.handle, &fb_id);
 	if (R) EFAIL("drmModeAddFB");
 
-	orig_crtc = drmModeGetCrtc(DD, encoder->crtc_id);
-	if (!orig_crtc) EFAIL("drmModeGetCrtc");
-	R = drmModeSetCrtc(DD, encoder->crtc_id, fb_id, 0, 0, &connector->connector_id, 1, &M);
+  drmModeCrtcPtr crtc;
+  mset(&crtc, 0, sizeof(crtc));
+  crtc = drmModeGetCrtc(DD, DENC->crtc_id);
+	if (!crtc) EFAIL("drmModeGetCrtc");
+	R = drmModeSetCrtc(DD, DENC->crtc_id, fb_id, 0, 0, &DCON->connector_id, 1, &M);
   if (R) EFAIL("drmModeSetCrtc failed");
 
   struct drm_mode_create_dumb cd2_arg;
@@ -443,7 +443,7 @@ int main(int argc, char *argv[]) {
 
 	struct flip_context flip_context;
 	mset(&flip_context, 0, sizeof flip_context);
-	R = drmModePageFlip(DD, encoder->crtc_id, fb2_id, DRM_MODE_PAGE_FLIP_EVENT, &flip_context);
+	R = drmModePageFlip(DD, DENC->crtc_id, fb2_id, DRM_MODE_PAGE_FLIP_EVENT, &flip_context);
 	if (R) EFAIL("failed to page flip");
 /*
 	struct drm_mode_crtc_page_flip flip;
@@ -457,7 +457,7 @@ int main(int argc, char *argv[]) {
 	flip_context.fb_id[0] = fb_id;
 	flip_context.fb_id[1] = fb2_id;
 	flip_context.current_fb_id = fb2_id;
-	flip_context.crtc_id = encoder->crtc_id;
+	flip_context.crtc_id = DENC->crtc_id;
 	flip_context.swap_count = 0;
 	gettimeofday(&flip_context.start, NULL);
 
@@ -496,12 +496,14 @@ int main(int argc, char *argv[]) {
   
   /* done for; restore */
   tcsetattr(STDIN_FILENO, TCSANOW, &old_tio);
-  R = drmModeSetCrtc(DD, orig_crtc->crtc_id, orig_crtc->buffer_id,
-   orig_crtc->x, orig_crtc->y, &connector->connector_id, 1, &orig_crtc->mode);
+  R = drmModeSetCrtc(DD, crtc->crtc_id, crtc->buffer_id,
+   crtc->x, crtc->y, &DCON->connector_id, 1, &crtc->mode);
   if (R) EFAIL("drmModeSetCrtc() restore original crtc failed");
   drmModeRmFB(DD, fb2_id);
 	drmModeRmFB(DD, fb_id);
-  drmModeFreeResources(resources);
+  drmModeFreeEncoder(DENC);
+  drmModeFreeConnector(DCON);
+  drmModeFreeResources(DRES);
   close(DD);
   return 0;
 }
