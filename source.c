@@ -213,6 +213,7 @@ int EFAIL(char *msg) {
 
 int main(int argc, char *argv[]) {
   time_t T = time(0);
+  time_t T0 = T;
   char L[80];
   mset(L, 0, 80);
   int R = snprintf(L, 80, "%s\nprogram begins\n", ctime(&T));
@@ -331,7 +332,8 @@ int main(int argc, char *argv[]) {
       }
     }
   }
-  printf("fer now we load pngs first\n%s\n", ctime(0));
+  T = time(0);
+  printf("fer now we load pngs first\n%s\n", ctime(&T));
   for (int i = 0; i < 676; i++) {
 	  /* continue; */
 	  char c1 = 96 + 1 + (i / 26);
@@ -369,7 +371,8 @@ int main(int argc, char *argv[]) {
     }
     cairo_surface_destroy(cst);
   }
-  printf("mkay, time to directly render ffs\n%s\n", ctime(0));
+  T = time(0);
+  printf("mkay, time to directly render ffs\n%s\n", ctime(&T));
   u32 fb_id = 0;
   u32 fb2_id = 0;
   int DD = open("/dev/dri/card0", O_RDWR);
