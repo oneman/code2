@@ -6,6 +6,9 @@ struct flip_context {
   int crtc_id;
   struct timeval start;
   u32 swap_count;
+  char *pixmap1;
+  char *pixmap2;
+  int pixmap_sz;
 };
 
 void pageflip(int fd, u32 frame, u32 sec, u32 usec, void *data) {
@@ -16,8 +19,10 @@ void pageflip(int fd, u32 frame, u32 sec, u32 usec, void *data) {
   context = (struct flip_context *)data;
   if (context->current_fb_id == context->fb_id[0]) {
     new_fb_id = context->fb_id[1];
+    mset(context->pixmap2, 255 - context->swap_count, context->pixmap_sz);
   } else {
     new_fb_id = context->fb_id[0];
+    mset(context->pixmap1, 255 - context->swap_count, context->pixmap_sz);
   }
   drmModePageFlip(fd, context->crtc_id, new_fb_id, DRM_MODE_PAGE_FLIP_EVENT,
    context);
@@ -419,6 +424,7 @@ int main(int argc, char *argv[]) {
   if (R) EFAIL("DRM_IOCTL_MODE_MAP_DUMB");
   char *pixmap1 = mmap(0, cd_arg.size, PROT_READ | PROT_WRITE, MAP_SHARED, DD,
                           md_arg.offset);
+  mset(pixmap1, 255, cd_arg.pitch * H * 4);
 	R = drmModeAddFB(DD, W, H, 24, 32, cd_arg.pitch, cd_arg.handle, &fb_id);
 	if (R) EFAIL("drmModeAddFB");
 
@@ -443,40 +449,35 @@ int main(int argc, char *argv[]) {
   if (R) EFAIL("DRM_IOCTL_MODE_MAP_DUMB");
   char *pixmap2 = mmap(0, cd2_arg.size, PROT_READ | PROT_WRITE, MAP_SHARED, DD,
                           md2_arg.offset);
+  mset(pixmap2, 255, cd2_arg.pitch * H * 4);
   R = drmModeAddFB(DD, W, H, 24, 32, cd2_arg.pitch, cd2_arg.handle, &fb2_id);
   if (R) EFAIL("drmModeAddFB failed");
 
 	struct flip_context flip_context;
 	mset(&flip_context, 0, sizeof flip_context);
-	R = drmModePageFlip(DD, DENC->crtc_id, fb2_id, DRM_MODE_PAGE_FLIP_EVENT, &flip_context);
-	if (R) EFAIL("failed to page flip");
-/*
-	struct drm_mode_crtc_page_flip flip;
-	memclear(flip);
-	flip.fb_id = fb_id;
-	flip.crtc_id = crtc_id;
-	flip.user_data = VOID2U64(user_data);
-	flip.flags = flags;
-	return DRM_IOCTL(DD, DRM_IOCTL_MODE_PAGE_FLIP, &flip);
-*/
-	flip_context.fb_id[0] = fb_id;
-	flip_context.fb_id[1] = fb2_id;
-	flip_context.current_fb_id = fb2_id;
-	flip_context.crtc_id = DENC->crtc_id;
-	flip_context.swap_count = 0;
-	gettimeofday(&flip_context.start, NULL);
+  flip_context.pixmap1 = pixmap1;
+  flip_context.pixmap2 = pixmap2;
+  flip_context.pixmap_sz = H * 4 * cd2_arg.pitch;
+  flip_context.fb_id[0] = fb_id;
+  flip_context.fb_id[1] = fb2_id;
+  flip_context.current_fb_id = fb2_id;
+  flip_context.crtc_id = DENC->crtc_id;
+  flip_context.swap_count = 0;
+  gettimeofday(&flip_context.start, NULL);
+  R = drmModePageFlip(DD, DENC->crtc_id, fb2_id, DRM_MODE_PAGE_FLIP_EVENT, &flip_context);
+  if (R) EFAIL("failed to page flip");
 
 	struct termios old_tio, new_tio;
-	tcgetattr(STDIN_FILENO, &old_tio);
-	new_tio = old_tio;
-	new_tio.c_lflag &= (~ICANON & ~ECHO);
-	tcsetattr(STDIN_FILENO, TCSANOW, &new_tio);
+  tcgetattr(STDIN_FILENO, &old_tio);
+  new_tio = old_tio;
+  new_tio.c_lflag &= (~ICANON & ~ECHO);
+  tcsetattr(STDIN_FILENO, TCSANOW, &new_tio);
 
-	drmEventContext evctx;
-	mset(&evctx, 0, sizeof evctx);
-	evctx.version = DRM_EVENT_CONTEXT_VERSION;
-	evctx.vblank_handler = NULL;
-	evctx.page_flip_handler = pageflip;
+  drmEventContext evctx;
+  mset(&evctx, 0, sizeof evctx);
+  evctx.version = DRM_EVENT_CONTEXT_VERSION;
+  evctx.vblank_handler = NULL;
+  evctx.page_flip_handler = pageflip;
 
   struct epoll_event ev;
   ev.events = EPOLLIN;
