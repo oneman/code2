@@ -411,6 +411,7 @@ int main(int argc, char *argv[]) {
   if (R) EFAIL("DRM_IOCTL_MODE_CREATE_DUMB");
   struct drm_mode_map_dumb md_arg;
   mset(&md_arg, 0, sizeof(md_arg));
+  md_arg.handle = cd_arg.handle;
   R = ioctl(DD, DRM_IOCTL_MODE_MAP_DUMB, &md_arg);
   if (R) EFAIL("DRM_IOCTL_MODE_MAP_DUMB");
   char *pixmap1 = mmap(0, cd_arg.size, PROT_READ | PROT_WRITE, MAP_SHARED, DD,
@@ -432,6 +433,7 @@ int main(int argc, char *argv[]) {
   if (R) EFAIL("DRM_IOCTL_MODE_CREATE_DUMB");
   struct drm_mode_map_dumb md2_arg;
   mset(&md2_arg, 0, sizeof(md2_arg));
+  md2_arg.handle = cd2_arg.handle;
   R = ioctl(DD, DRM_IOCTL_MODE_MAP_DUMB, &md2_arg);
   if (R) EFAIL("DRM_IOCTL_MODE_MAP_DUMB");
   char *pixmap2 = mmap(0, cd2_arg.size, PROT_READ | PROT_WRITE, MAP_SHARED, DD,
