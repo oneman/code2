@@ -89,7 +89,7 @@ static int read_frame(kr_v4l2 *kv, kr_frame **frame) {
   }
   kv->frames[buf.index].frame.info.ts = buf.timestamp;
   *frame = &kv->frames[buf.index].frame;
-  /*kr_frame_debug_time(*frame, "V4L2", 4);*//*
+  *//*kr_frame_debug_time(*frame, "V4L2", 4);*//*
   return 1;
 }
 
@@ -102,7 +102,7 @@ static int user_event(kr_event *event) {
   if (event->events & EPOLLIN) {
     //frame = NULL;
     ret = kv->adapter_path->read(kv->adapter_path->user, (kr_av *)&frame);
-    /*printk("V4L2: user event read ret %d", ret);*//*
+    *//*printk("V4L2: user event read ret %d", ret);*//*
     if (ret != 1) {
       printke("V4L2: problem reading frame back");
       return -1;
@@ -132,7 +132,7 @@ static int device_event(kr_event *event) {
      kv->total_frames);
     kr_image_debug_render(&frame->image, 1, dbgstr);
     ret = kv->adapter_path->write(kv->adapter_path->user, (kr_av *)frame);
-    /*printk("V4L2: device event write ret %d", ret);*//*
+    *//*printk("V4L2: device event write ret %d", ret);*//*
     if (ret != 1) {
       frame->image.release(frame->image.owner);
     }
@@ -250,8 +250,8 @@ static int map_frames(kr_v4l2 *kv) {
     image->px[2] = NULL;
     image->px[3] = NULL;
     image->ps[0] = kv->path_info->width * 2;
-    image->ps[1] = 0;  /* kv->path_info->width/2; *//*
-    image->ps[2] = 0;  /* kv->path_info->width/2; *//*
+    image->ps[1] = 0;  *//* kv->path_info->width/2; *//*
+    image->ps[2] = 0;  *//* kv->path_info->width/2; *//*
     image->ps[3] = 0;
     image->info.w = kv->path_info->width;
     image->info.h = kv->path_info->height;
@@ -516,14 +516,12 @@ int xmain (int argc, char **argv) {
     exit(1);
   }
   s = xcb_setup_roots_iterator(xcb_get_setup(c)).data;
-  /* create window *//*
   mask = XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK;
   values[0] = s->white_pixel;
   values[1] = XCB_EVENT_MASK_EXPOSURE | XCB_EVENT_MASK_KEY_PRESS;
   w = xcb_generate_id(c);
   xcb_create_window(c, XCB_COPY_FROM_PARENT, w, s->root, 10, 10, 640, 360, 1,
    XCB_WINDOW_CLASS_INPUT_OUTPUT, s->root_visual, mask, values);
-  /* create black graphics context *//*
   mask = XCB_GC_FOREGROUND | XCB_GC_GRAPHICS_EXPOSURES;
   values[0] = s->black_pixel;
   values[1] = 0;
@@ -558,7 +556,7 @@ struct flip_context {
   u32 current_fb_id;
   int crtc_id;
   struct timeval start;
-  u32 swap_count;
+  u64 swap_count;
   char *pixmap1;
   char *pixmap2;
   int pixmap_sz;
@@ -581,14 +579,14 @@ void pageflip(int fd, u32 frame, u32 sec, u32 usec, void *data) {
    context);
   context->current_fb_id = new_fb_id;
   context->swap_count++;
-  if (context->swap_count == 60) {
+  if ((context->swap_count % 60) == 0) {
     gettimeofday(&end, NULL);
     t = end.tv_sec + end.tv_usec * 1e-6
      - (context->start.tv_sec + context->start.tv_usec * 1e-6);
-    printf("freq: %.02fHz\n", context->swap_count / t);
+    printf("freq: %.02fHz\n", 60 / t);
     context->swap_count = 0;
     context->start = end;
-	}
+  }
 }
 /*
     if (mouse) {
@@ -764,7 +762,8 @@ int main(int argc, char *argv[]) {
   time_t T0 = T;
   char L[80];
   mset(L, 0, 80);
-  int R = snprintf(L, 80, "%s\nprogram begins\n", ctime(&T0));
+  int R = snprintf(L, 80, "program begins %sgmp %s cairo %s\n", ctime(&T0),
+   gmp_version, cairo_version_string());
   write(1, L, R);
   R = setuid(0);
   if (R) EFAIL("1.0 setuid run with sudo");
@@ -796,19 +795,16 @@ int main(int argc, char *argv[]) {
   if (R == -1) EFAIL("7 ftruncate 4205260800");
   char *DAT = mmap(NULL, 4205260800, PROT_READ | PROT_WRITE, MAP_SHARED, MD, 0);
   if (!DAT) EFAIL("8 mmap 4205260800");
-  printf("Everything worked? Lets touch mem\n");
-  mset(DAT, 'K', 4205260800);
-  printf("we touched all the memory!\n");
   R = mlock(DAT, 4205260800);
   if (R == -1) EFAIL("9 mlock 4205260800");
-  /*  printf("Cairo %s\n", cairo_version_string());
+  mset(DAT, 'K', 4205260800);
+  /*
   pw_init(&argc, &argv);
   char *pw_hdr_ver = pw_get_headers_version();
   const char *pw_lib_ver = pw_get_library_version();
   if (strsz(pw_hdr_ver) != strsz(pw_lib_ver)) return 42;
   if (mcmp(pw_hdr_ver, pw_lib_ver, strsz(pw_lib_ver))) return 666;
   printf("Pipewire %s\n", pw_hdr_ver); */
-  printf("gmp_version: %s\n", gmp_version);
   /* void mp_set_memory_functions
       void *(*alloc_func_ptr) (size_t),
       void *(*realloc_func_ptr) (void *, size_t, size_t),
@@ -822,19 +818,19 @@ int main(int argc, char *argv[]) {
   mpz_init_set_str(d, "4205260799", 10);
   mpz_init_set_str(x, "18446744073709551616", 10);
   mpz_mod(r, d, x);
-  gmp_printf("%Zd\n", r);
+  /*gmp_printf("%Zd\n", r);*/
   mpz_t e;
   mpz_init(e);
   mpz_fac_ui(e, 26);
-  gmp_printf("26!\n%Zd\n", e);
+  /*gmp_printf("26!\n%Zd\n", e);*/
   mpz_t f;
   mpz_init(f);
   mpz_fac_ui(f, 126);
-  gmp_printf("126!\n%Zd\n", f);
+  /*gmp_printf("126!\n%Zd\n", f);*/
   mpz_t g;
   mpz_init(g);
   mpz_fac_ui(g, 209);
-  gmp_printf("209!\n%Zd\n", g);
+  /*gmp_printf("209!\n%Zd\n", g);*/
   mpz_clear(a);
   mpz_clear(b);
   mpz_clear(c);
@@ -870,35 +866,35 @@ int main(int argc, char *argv[]) {
   }
   for (int i = 0; i < 26; i++) {
     if (HiD[i] > 0) {
-      if (HiD_type[i] == 'k') printf("keyboard on %d (fd %d)\n", i, HiD[i]);
-      if (HiD_type[i] == 'm') printf("mouse on %d (fd %d)\n", i, HiD[i]);
+      if (HiD_type[i] == 'k') printf("keyboard on fd %d\n", HiD[i]);
+      if (HiD_type[i] == 'm') printf("mouse on fd %d\n", HiD[i]);
       if (HiD_type[i] == 0) {
         R = close(HiD[i]);
         if (R == -1) { perror("close"); }
-        printf("something else was on %d (fd %d)\n", i, HiD[i]);
+        /*printf("something else was on fd %d\n", HiD[i]);*/
         HiD[i] = 0;
       }
     }
   }
   T = time(0);
-  printf("fer now we load pngs first\n%s\n", ctime(&T));
+  printf("%sloading pixmap from pngs\n", ctime(&T));
   for (int i = 0; i < 676; i++) {
-	  /* continue; */
-	  char c1 = 96 + 1 + (i / 26);
-	  char c2 = 96 + 1 + (i % 26);
-	  char filename[256];
-	  char *map_dir = getenv("OVERRIDE_PROGRAM_PIXMAP_BASEDIR");
-	  if (map_dir) printf("using %s for dat pix map\n", map_dir);
-	  if (!map_dir) map_dir = "/map";
-	  snprintf(filename, 256, "%s/%c/%c/%s%s.png", map_dir, c1, c2,
-	   nato[c1 - 97], nato[c2 - 97]);
-	  printf("Loading %3d %s\n", i, filename);
-	  cairo_surface_t *cst = cairo_image_surface_create_from_png(filename);
-	  cairo_status_t cairo_errno = cairo_surface_status(cst);
-	  if (cairo_errno) {
-      printf("PC_LOAD_LETTER %s\n", cairo_status_to_string(cairo_errno));
-      continue;
-	  }
+  /* continue; */
+    char c1 = 96 + 1 + (i / 26);
+    char c2 = 96 + 1 + (i % 26);
+    char filename[256];
+    char *map_dir = getenv("OVERRIDE_PROGRAM_PIXMAP_BASEDIR");
+    if (map_dir) printf("using %s for dat pix map\n", map_dir);
+    if (!map_dir) map_dir = "/map";
+    snprintf(filename, 256, "%s/%c/%c/%s%s.png", map_dir, c1, c2,
+     nato[c1 - 97], nato[c2 - 97]);
+     /*printf("Loading %3d %s\n", i, filename);*/
+     cairo_surface_t *cst = cairo_image_surface_create_from_png(filename);
+     cairo_status_t cairo_errno = cairo_surface_status(cst);
+     if (cairo_errno) {
+       printf("PC_LOAD_LETTER %s\n", cairo_status_to_string(cairo_errno));
+       continue;
+    }
     if ((cairo_image_surface_get_width(cst) != 1920)
      || (cairo_image_surface_get_height(cst) != 1080)
      || (cairo_image_surface_get_stride(cst) != 1920 * 4)
@@ -919,8 +915,6 @@ int main(int argc, char *argv[]) {
     }
     cairo_surface_destroy(cst);
   }
-  T = time(0);
-  printf("mkay, time to directly render ffs\n%s\n", ctime(&T));
   u32 fb_id = 0;
   u32 fb2_id = 0;
   int DD = open("/dev/dri/card0", O_RDWR);
@@ -948,20 +942,21 @@ int main(int argc, char *argv[]) {
   drmModeModeInfo M = DCON->modes[0];
   int W = M.hdisplay;
   int H = M.vdisplay;
-	printf("(%dx%d)\n", W, H);
+  T = time(0);
+  printf("%d x %d\n%s", W, H, ctime(&T));
   drmModeEncoder *DENC = NULL;
   for (int i = 0; i < DRES->count_encoders; ++i) {
     DENC = drmModeGetEncoder(DD, DRES->encoders[i]);
     if (DENC != NULL) {
       printf("encoder %d found\n", DENC->encoder_id);
-			if (DENC->encoder_id == DCON->encoder_id) {
-			  break;
-			}
-			drmModeFreeEncoder(DENC);
-		} else {
-		  EFAIL("get a null encoder pointer");
-		}
-	}
+      if (DENC->encoder_id == DCON->encoder_id) {
+        break;
+      }
+      drmModeFreeEncoder(DENC);
+    } else {
+      EFAIL("get a null encoder pointer");
+    }
+  }
   struct drm_mode_create_dumb cd_arg;
   mset(&cd_arg, 0, sizeof(cd_arg));
   cd_arg.bpp = 32;
@@ -975,16 +970,16 @@ int main(int argc, char *argv[]) {
   R = ioctl(DD, DRM_IOCTL_MODE_MAP_DUMB, &md_arg);
   if (R) EFAIL("DRM_IOCTL_MODE_MAP_DUMB");
   char *pixmap1 = mmap(0, cd_arg.size, PROT_READ | PROT_WRITE, MAP_SHARED, DD,
-                          md_arg.offset);
-  mset(pixmap1, 255, cd_arg.pitch * H);
-	R = drmModeAddFB(DD, W, H, 24, 32, cd_arg.pitch, cd_arg.handle, &fb_id);
-	if (R) EFAIL("drmModeAddFB");
+                       md_arg.offset);
+  mset(pixmap1, 126, cd_arg.pitch * H);
+  R = drmModeAddFB(DD, W, H, 24, 32, cd_arg.pitch, cd_arg.handle, &fb_id);
+  if (R) EFAIL("drmModeAddFB");
 
   drmModeCrtcPtr crtc;
   mset(&crtc, 0, sizeof(crtc));
   crtc = drmModeGetCrtc(DD, DENC->crtc_id);
-	if (!crtc) EFAIL("drmModeGetCrtc");
-	R = drmModeSetCrtc(DD, DENC->crtc_id, fb_id, 0, 0, &DCON->connector_id, 1, &M);
+  if (!crtc) EFAIL("drmModeGetCrtc");
+  R = drmModeSetCrtc(DD, DENC->crtc_id, fb_id, 0, 0, &DCON->connector_id, 1, &M);
   if (R) EFAIL("drmModeSetCrtc failed");
 
   struct drm_mode_create_dumb cd2_arg;
@@ -1001,12 +996,12 @@ int main(int argc, char *argv[]) {
   if (R) EFAIL("DRM_IOCTL_MODE_MAP_DUMB");
   char *pixmap2 = mmap(0, cd2_arg.size, PROT_READ | PROT_WRITE, MAP_SHARED, DD,
                           md2_arg.offset);
-  mset(pixmap2, 255, cd2_arg.pitch * H);
+  mset(pixmap2, 126, cd2_arg.pitch * H);
   R = drmModeAddFB(DD, W, H, 24, 32, cd2_arg.pitch, cd2_arg.handle, &fb2_id);
   if (R) EFAIL("drmModeAddFB failed");
 
-	struct flip_context flip_context;
-	mset(&flip_context, 0, sizeof flip_context);
+  struct flip_context flip_context;
+  mset(&flip_context, 0, sizeof flip_context);
   flip_context.pixmap1 = pixmap1;
   flip_context.pixmap2 = pixmap2;
   flip_context.pixmap_sz = H * cd2_arg.pitch;
@@ -1019,7 +1014,7 @@ int main(int argc, char *argv[]) {
   R = drmModePageFlip(DD, DENC->crtc_id, fb2_id, DRM_MODE_PAGE_FLIP_EVENT, &flip_context);
   if (R) EFAIL("failed to page flip");
 
-	struct termios old_tio, new_tio;
+  struct termios old_tio, new_tio;
   tcgetattr(STDIN_FILENO, &old_tio);
   new_tio = old_tio;
   new_tio.c_lflag &= (~ICANON & ~ECHO);
@@ -1040,13 +1035,11 @@ int main(int argc, char *argv[]) {
   R = epoll_ctl(PD, EPOLL_CTL_ADD, ev.data.fd, &ev);
   if (R) EFAIL("epoll_ctlfail");
 
-  /* ready for */
-  printf("\nfor\n");
-  for (u64 i = 0;;i++) {
-    T = time(0);
+  for (u64 i = 0;i < 676;i++) {
+    /*T = time(0);
     mset(L, 0, 80);
     R = snprintf(L, 80, "%s program loop %lu\n", ctime(&T), i);
-    write(1, L, R);
+    write(1, L, R);*/
     R = epoll_wait(PD, &ev, 1, 1000);
     if (R == -1) { printf("epoll_waitfail: %s\n", strerror(errno)); exit(1); }
     if (R == 0) { printf("epoll_wait, long time, 1000ms!\n"); continue; }
@@ -1062,7 +1055,7 @@ int main(int argc, char *argv[]) {
    crtc->x, crtc->y, &DCON->connector_id, 1, &crtc->mode);
   if (R) EFAIL("drmModeSetCrtc() restore original crtc failed");
   drmModeRmFB(DD, fb2_id);
-	drmModeRmFB(DD, fb_id);
+  drmModeRmFB(DD, fb_id);
   drmModeFreeEncoder(DENC);
   drmModeFreeConnector(DCON);
   drmModeFreeResources(DRES);
