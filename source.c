@@ -573,7 +573,7 @@ void pageflip(int fd, u32 frame, u32 sec, u32 usec, void *data) {
     mset(context->pixmap2, 255 - context->swap_count, context->pixmap_sz);
   } else {
     new_fb_id = context->fb_id[0];
-    mset(context->pixmap1, 255 - context->swap_count, context->pixmap_sz);
+    mset(context->pixmap1, 255 - (context->swap_count * 2), context->pixmap_sz);
   }
   drmModePageFlip(fd, context->crtc_id, new_fb_id, DRM_MODE_PAGE_FLIP_EVENT,
    context);
@@ -1007,7 +1007,7 @@ int main(int argc, char *argv[]) {
   flip_context.pixmap_sz = H * cd2_arg.pitch;
   flip_context.fb_id[0] = fb_id;
   flip_context.fb_id[1] = fb2_id;
-  flip_context.current_fb_id = fb2_id;
+  flip_context.current_fb_id = fb_id;
   flip_context.crtc_id = DENC->crtc_id;
   flip_context.swap_count = 0;
   gettimeofday(&flip_context.start, NULL);
