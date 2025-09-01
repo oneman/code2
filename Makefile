@@ -4,6 +4,7 @@ compile:
 	@gcc -g -Wall -O2 $(libscflags) -lm source.c -o program
 	@sudo chown root ./program
 	@sudo chmod +s ./program
+	@clang -g -Wall -O2 t.c -o t
 	@clang -g -Wall -O2 $(libscflags) -lm source.c -o programc
 	@sudo chown root ./programc
 	@sudo chmod +s ./programc
@@ -16,6 +17,7 @@ install: compile
 	@sudo chown root ./program
 	@sudo chmod +s ./program
 	@sudo cp -a ./program /bin/program
+	@sudo cp -a ./t /bin/t
 	@sudo mkdir -p /map
 	@sudo cp -a ./map/* /map/
 	@echo "ok"
