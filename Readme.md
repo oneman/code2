@@ -2,4 +2,4 @@
 
 make && ./program
 
-![ss](ss.png)
+![t](t.png)
