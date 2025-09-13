@@ -1,4 +1,5 @@
 #include "header.h"
+
 /*
 typedef enum {
   KR_V4L2_VOID,
@@ -551,6 +552,12 @@ int xmain (int argc, char **argv) {
 * above we have some of our old code for v4l2, alsa and xcb
 */
 
+u8 *m = 0;
+int X = 49920 - 49920;
+int Y = 28080 - 28080;
+int W = 0;
+int H = 0;
+
 struct flip_context {
   u32 fb_id[2];
   u32 current_fb_id;
@@ -793,11 +800,11 @@ int main(int argc, char *argv[]) {
   if (WD == -1) EFAIL("6 inotify_add_watch /dev IN_CREATE");
   R = ftruncate(MD, 4205260800);
   if (R == -1) EFAIL("7 ftruncate 4205260800");
-  char *DAT = mmap(NULL, 4205260800, PROT_READ | PROT_WRITE, MAP_SHARED, MD, 0);
-  if (!DAT) EFAIL("8 mmap 4205260800");
-  R = mlock(DAT, 4205260800);
+  m = mmap(NULL, 4205260800, PROT_READ | PROT_WRITE, MAP_SHARED, MD, 0);
+  if (!m) EFAIL("8 mmap 4205260800");
+  R = mlock(m, 4205260800);
   if (R == -1) EFAIL("9 mlock 4205260800");
-  mset(DAT, 'K', 4205260800);
+  mset(m, 'K', 4205260800);
   /*
   pw_init(&argc, &argv);
   char *pw_hdr_ver = pw_get_headers_version();
@@ -905,9 +912,9 @@ int main(int argc, char *argv[]) {
     for (int y = 0; y < 1080; y++) {
       for (int x = 0; x < 1920; x++) {
         int pxy = ((i % 26) * (1920 * 3)) + (y * (1920 * 26 * 3)) + (x * 3);
-        DAT[pxy] = dat[(y * 4) + (x * 4)];
-        DAT[pxy + 1] = dat[(y * 4) + (x * 4) + 1];
-        DAT[pxy + 2] = dat[(y * 4) + (x * 4) + 2];
+        m[pxy] = dat[(y * 4) + (x * 4)];
+        m[pxy + 1] = dat[(y * 4) + (x * 4) + 1];
+        m[pxy + 2] = dat[(y * 4) + (x * 4) + 2];
       }
     }
     cairo_surface_destroy(cst);
@@ -937,8 +944,8 @@ int main(int argc, char *argv[]) {
     if (i == DRES->count_connectors) EFAIL("No active connector found");
   }
   drmModeModeInfo M = DCON->modes[0];
-  int W = M.hdisplay;
-  int H = M.vdisplay;
+  W = M.hdisplay;
+  H = M.vdisplay;
   T = time(0);
   printf("%d x %d\n%s", W, H, ctime(&T));
   drmModeEncoder *DENC = NULL;
