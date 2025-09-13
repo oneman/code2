@@ -762,7 +762,7 @@ int main(int argc, char *argv[]) {
   time_t T0 = T;
   char L[80];
   mset(L, 0, 80);
-  int R = snprintf(L, 80, "program begins %sgmp %s cairo %s\n", ctime(&T0),
+  int R = snprintf(L, 80, "program 2601 begins %sgmp %s cairo %s\n", ctime(&T0),
    gmp_version, cairo_version_string());
   write(1, L, R);
   R = setuid(0);
@@ -810,14 +810,14 @@ int main(int argc, char *argv[]) {
       void *(*realloc_func_ptr) (void *, size_t, size_t),
       void (*free_func_ptr) (void *, size_t))
   */
-  mpz_t a, b, c, d, r, x;
+  mpz_t a, b, c, d, r, r2;
   mpz_init_set_ui(b, 0);
   mpz_init_set_ui(c, 0);
   mpz_init_set_ui(r, 0);
   mpz_init_set_str(a, "4205260800", 10);
   mpz_init_set_str(d, "4205260799", 10);
-  mpz_init_set_str(x, "18446744073709551616", 10);
-  mpz_mod(r, d, x);
+  mpz_init_set_str(r2, "18446744073709551616", 10);
+  mpz_mod(r, d, r2);
   /*gmp_printf("%Zd\n", r);*/
   mpz_t e;
   mpz_init(e);
@@ -836,7 +836,7 @@ int main(int argc, char *argv[]) {
   mpz_clear(c);
   mpz_clear(d);
   mpz_clear(r);
-  mpz_clear(x);
+  mpz_clear(r2);
   mpz_clear(e);
   mpz_clear(f);
   mpz_clear(g);
@@ -901,16 +901,13 @@ int main(int argc, char *argv[]) {
      || (cairo_image_surface_get_format(cst) != CAIRO_FORMAT_RGB24)) {
       EFAIL("13 cairo bad map png format 1920x1080 rgb24 bro");
     }
-    unsigned char *dat = cairo_image_surface_get_data(cst);
-    unsigned long x0 = (i % 26) * (1920*3);
-    int stride = 1920 * 26 * 3;
-    for (int yy = 0; yy < 1080; yy++) {
-      int pyy = yy * stride;
-      for (int xx = 0; xx < 1920; xx++) {
-        int pxy = x0 + pyy + (xx * 3);
-        DAT[pxy] = dat[(yy * 4) + (xx * 4)];
-        DAT[pxy + 1] = dat[(yy * 4) + (xx * 4) + 1];
-        DAT[pxy + 2] = dat[(yy * 4) + (xx * 4) + 2];
+    u8 *dat = cairo_image_surface_get_data(cst);
+    for (int y = 0; y < 1080; y++) {
+      for (int x = 0; x < 1920; x++) {
+        int pxy = ((i % 26) * (1920 * 3)) + (y * (1920 * 26 * 3)) + (x * 3);
+        DAT[pxy] = dat[(y * 4) + (x * 4)];
+        DAT[pxy + 1] = dat[(y * 4) + (x * 4) + 1];
+        DAT[pxy + 2] = dat[(y * 4) + (x * 4) + 2];
       }
     }
     cairo_surface_destroy(cst);
