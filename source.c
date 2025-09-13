@@ -564,8 +564,9 @@ struct flip_context {
   int crtc_id;
   struct timeval start;
   u64 swap_count;
-  char *pixmap1;
-  char *pixmap2;
+  u8 *pixmap1;
+  u8 *pixmap2;
+  u8 *pix;  
   int pixmap_sz;
 };
 
@@ -578,10 +579,13 @@ void pageflip(int fd, u32 frame, u32 sec, u32 usec, void *data) {
   if (context->current_fb_id == context->fb_id[0]) {
     new_fb_id = context->fb_id[1];
     mset(context->pixmap2, 255 - context->swap_count, context->pixmap_sz);
+    context->pix = context->pixmap2;
   } else {
     new_fb_id = context->fb_id[0];
     mset(context->pixmap1, 255 - (context->swap_count * 2), context->pixmap_sz);
+    context->pix = context->pixmap1;
   }
+  
   drmModePageFlip(fd, context->crtc_id, new_fb_id, DRM_MODE_PAGE_FLIP_EVENT,
    context);
   context->current_fb_id = new_fb_id;
@@ -973,7 +977,7 @@ int main(int argc, char *argv[]) {
   md_arg.handle = cd_arg.handle;
   R = ioctl(DD, DRM_IOCTL_MODE_MAP_DUMB, &md_arg);
   if (R) EFAIL("DRM_IOCTL_MODE_MAP_DUMB");
-  char *pixmap1 = mmap(0, cd_arg.size, PROT_READ | PROT_WRITE, MAP_SHARED, DD,
+  u8 *pixmap1 = mmap(0, cd_arg.size, PROT_READ | PROT_WRITE, MAP_SHARED, DD,
                        md_arg.offset);
   mset(pixmap1, 126, cd_arg.pitch * H);
   R = drmModeAddFB(DD, W, H, 24, 32, cd_arg.pitch, cd_arg.handle, &fb_id);
@@ -998,7 +1002,7 @@ int main(int argc, char *argv[]) {
   md2_arg.handle = cd2_arg.handle;
   R = ioctl(DD, DRM_IOCTL_MODE_MAP_DUMB, &md2_arg);
   if (R) EFAIL("DRM_IOCTL_MODE_MAP_DUMB");
-  char *pixmap2 = mmap(0, cd2_arg.size, PROT_READ | PROT_WRITE, MAP_SHARED, DD,
+  u8 *pixmap2 = mmap(0, cd2_arg.size, PROT_READ | PROT_WRITE, MAP_SHARED, DD,
                           md2_arg.offset);
   mset(pixmap2, 126, cd2_arg.pitch * H);
   R = drmModeAddFB(DD, W, H, 24, 32, cd2_arg.pitch, cd2_arg.handle, &fb2_id);
