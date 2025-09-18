@@ -557,6 +557,18 @@ int X = 49920 - 49920;
 int Y = 28080 - 28080;
 int W = 0;
 int H = 0;
+u8 *P = 0;
+
+void draw(void) {
+  for (int y = 0; y < H; y++) {
+    for (int x = 0; x < W; x++) {
+      int pxy = (Y * (1920 * 26 * 3)) + (X * 3);
+      P[(y * W * 4) + (x * 4) + 0] = m[pxy + 0];
+      P[(y * W * 4) + (x * 4) + 1] = m[pxy + 1];
+      P[(y * W * 4) + (x * 4) + 2] = m[pxy + 2];
+    }
+  }
+}
 
 struct flip_context {
   u32 fb_id[2];
@@ -566,7 +578,6 @@ struct flip_context {
   u64 swap_count;
   u8 *pixmap1;
   u8 *pixmap2;
-  u8 *pix;  
   int pixmap_sz;
 };
 
@@ -579,13 +590,13 @@ void pageflip(int fd, u32 frame, u32 sec, u32 usec, void *data) {
   if (context->current_fb_id == context->fb_id[0]) {
     new_fb_id = context->fb_id[1];
     mset(context->pixmap2, 255 - context->swap_count, context->pixmap_sz);
-    context->pix = context->pixmap2;
+    P = context->pixmap2;
   } else {
     new_fb_id = context->fb_id[0];
     mset(context->pixmap1, 255 - (context->swap_count * 2), context->pixmap_sz);
-    context->pix = context->pixmap1;
+    P = context->pixmap1;
   }
-  
+  draw();
   drmModePageFlip(fd, context->crtc_id, new_fb_id, DRM_MODE_PAGE_FLIP_EVENT,
    context);
   context->current_fb_id = new_fb_id;
@@ -654,21 +665,21 @@ void pageflip(int fd, u32 frame, u32 sec, u32 usec, void *data) {
 */
 
 char *usbkeyboardlabeltable[] = {
-	"", "", "", "",
-	"aA", "bB", "cC", "dD", "eE", "fF", "gG", "hH", "iI", "jJ", "kK", "lL", "mM",
-	"nN", "oO", "pP", "qQ", "rR", "sS", "tT", "uU", "vV", "wW", "xX", "yY", "zZ",
-	"1!","2@","3#","4$","5%","6^","7&","8*","9(","0)",
-	"Enter", "Escape", "Backspace", "Tab",
-	" ",
-	"-_", "=+", "[{", "]}",	"\\|", "", ";:", "'\"", "`~", ",<", ".>", "/?",
-	"CapsLock",
-	"F1","F2","F3","F4","F5","F6","F7","F8","F9","F10","F11","F12",
-	"Print", "ScrollLock", "Pause",
-	"Insert", "Home", "PageUp", "Delete", "End", "PageDown",
-	"Right", "Left", "Down", "Up",
-	"NumLock", "/", "*", "-", "+", "Enter",
-	"1", "2", "3", "4", "5", "6", "7", "8", "9", "0",
-	".", "", "Menu"
+  "", "", "", "",
+  "aA", "bB", "cC", "dD", "eE", "fF", "gG", "hH", "iI", "jJ", "kK", "lL", "mM",
+  "nN", "oO", "pP", "qQ", "rR", "sS", "tT", "uU", "vV", "wW", "xX", "yY", "zZ",
+  "1!","2@","3#","4$","5%","6^","7&","8*","9(","0)",
+  "Enter", "Escape", "Backspace", "Tab",
+  " ",
+  "-_", "=+", "[{", "]}",	"\\|", "", ";:", "'\"", "`~", ",<", ".>", "/?",
+  "CapsLock",
+  "F1","F2","F3","F4","F5","F6","F7","F8","F9","F10","F11","F12",
+  "Print", "ScrollLock", "Pause",
+  "Insert", "Home", "PageUp", "Delete", "End", "PageDown",
+  "Right", "Left", "Down", "Up",
+  "NumLock", "/", "*", "-", "+", "Enter",
+  "1", "2", "3", "4", "5", "6", "7", "8", "9", "0",
+  ".", "", "Menu"
 };
 
 int textkey(char k) {
@@ -751,7 +762,7 @@ char scanx(char *src) {
   return b;
 }
 
-void sprintx(char *dst, const char *src, int n)  {
+void sprintx(char *dst, u8 *src, int n)  {
   const char xx[]= "0123456789ABCDEF";
   for (; n > 0; --n) {
     unsigned char c = *src++;
@@ -771,8 +782,8 @@ int EFAIL(char *msg) {
 int main(int argc, char *argv[]) {
   time_t T = time(0);
   time_t T0 = T;
-  char L[80];
-  mset(L, 0, 80);
+  char L[4096];
+  mset(L, 0, 4096);
   int R = snprintf(L, 80, "program 2601 begins %sgmp %s cairo %s\n", ctime(&T0),
    gmp_version, cairo_version_string());
   write(1, L, R);
@@ -869,7 +880,10 @@ int main(int argc, char *argv[]) {
     if ((R < 0) || (rpt.size < 4)) EFAIL("HIDIOCGRDESCSIZE");
     R = ioctl(HiD[i], HIDIOCGRDESC, &rpt);
     if (R < 0) EFAIL("HIDIOCGRDESC");
-    unsigned char *s = rpt.value;
+    u8 *s = rpt.value;
+    sprintx(L, s, rpt.size);
+    write(1, L, rpt.size * 2);
+    write(1, "\n", 1);
     if ((s[0] != 5) || (s[1] != 1) || (s[2] != 9)) continue;
     if ((s[3] != 2) && (s[3] != 6)) continue;
     if (s[3] == 2) HiD_type[i] = 'm';
@@ -916,9 +930,9 @@ int main(int argc, char *argv[]) {
     for (int y = 0; y < 1080; y++) {
       for (int x = 0; x < 1920; x++) {
         int pxy = ((i % 26) * (1920 * 3)) + (y * (1920 * 26 * 3)) + (x * 3);
-        m[pxy] = dat[(y * 4) + (x * 4)];
-        m[pxy + 1] = dat[(y * 4) + (x * 4) + 1];
-        m[pxy + 2] = dat[(y * 4) + (x * 4) + 2];
+        m[pxy] = dat[(y * 1920 * 4) + (x * 4)];
+        m[pxy + 1] = dat[(y * 1920 * 4) + (x * 4) + 1];
+        m[pxy + 2] = dat[(y * 1920 * 4) + (x * 4) + 2];
       }
     }
     cairo_surface_destroy(cst);
