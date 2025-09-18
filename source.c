@@ -570,10 +570,10 @@ void draw(void) {
   }
 }
 
-struct flip_context {
+struct dctx {
   u32 fb_id[2];
   u32 current_fb_id;
-  int crtc_id;
+  int crtid;
   struct timeval start;
   u64 swap_count;
   u8 *pixmap1;
@@ -582,11 +582,11 @@ struct flip_context {
 };
 
 void pageflip(int fd, u32 frame, u32 sec, u32 usec, void *data) {
-  struct flip_context *context;
+  struct dctx *context;
   unsigned int new_fb_id;
   struct timeval end;
   double t;
-  context = (struct flip_context *)data;
+  context = (struct dctx *)data;
   if (context->current_fb_id == context->fb_id[0]) {
     new_fb_id = context->fb_id[1];
     mset(context->pixmap2, 255 - context->swap_count, context->pixmap_sz);
@@ -597,7 +597,7 @@ void pageflip(int fd, u32 frame, u32 sec, u32 usec, void *data) {
     P = context->pixmap1;
   }
   draw();
-  drmModePageFlip(fd, context->crtc_id, new_fb_id, DRM_MODE_PAGE_FLIP_EVENT,
+  drmModePageFlip(fd, context->crtid, new_fb_id, DRM_MODE_PAGE_FLIP_EVENT,
    context);
   context->current_fb_id = new_fb_id;
   context->swap_count++;
@@ -784,6 +784,7 @@ int main(int argc, char *argv[]) {
   time_t T0 = T;
   char L[4096];
   mset(L, 0, 4096);
+  int AETHER = htons(ETH_P_ALL);
   int R = snprintf(L, 80, "program 2601 begins %sgmp %s cairo %s\n", ctime(&T0),
    gmp_version, cairo_version_string());
   write(1, L, R);
@@ -805,10 +806,9 @@ int main(int argc, char *argv[]) {
   int SD = signalfd(-1, &mask, SFD_NONBLOCK | SFD_CLOEXEC);
   int MD = memfd_create("pixmap-framebuffer", MFD_CLOEXEC);
   int PD = epoll_create1(EPOLL_CLOEXEC);
-  int ED = eventfd(2601, EFD_NONBLOCK | EFD_CLOEXEC);
+  int ED = eventfd(26, EFD_NONBLOCK | EFD_CLOEXEC);
   int TD = timerfd_create(CLOCK_MONOTONIC, TFD_NONBLOCK | TFD_CLOEXEC);
-  int ND = socket(AF_PACKET,
-                  SOCK_RAW | SOCK_NONBLOCK | SOCK_CLOEXEC, htons(ETH_P_ALL));
+  int ND = socket(AF_PACKET, SOCK_RAW | SOCK_NONBLOCK | SOCK_CLOEXEC, AETHER);
   int ID = inotify_init1(IN_NONBLOCK | IN_CLOEXEC);
   if ((6*6+6) != (SD + MD + PD + ED + TD + ND + ID)) EFAIL("6*6+6=42 PANICAN");
   int WD = inotify_add_watch(ID, "/dev", IN_CREATE);
@@ -1022,18 +1022,19 @@ int main(int argc, char *argv[]) {
   R = drmModeAddFB(DD, W, H, 24, 32, cd2_arg.pitch, cd2_arg.handle, &fb2_id);
   if (R) EFAIL("drmModeAddFB failed");
 
-  struct flip_context flip_context;
-  mset(&flip_context, 0, sizeof flip_context);
-  flip_context.pixmap1 = pixmap1;
-  flip_context.pixmap2 = pixmap2;
-  flip_context.pixmap_sz = H * cd2_arg.pitch;
-  flip_context.fb_id[0] = fb_id;
-  flip_context.fb_id[1] = fb2_id;
-  flip_context.current_fb_id = fb_id;
-  flip_context.crtc_id = DENC->crtc_id;
-  flip_context.swap_count = 0;
-  gettimeofday(&flip_context.start, NULL);
-  R = drmModePageFlip(DD, DENC->crtc_id, fb2_id, DRM_MODE_PAGE_FLIP_EVENT, &flip_context);
+  struct dctx dctx;
+  mset(&dctx, 0, sizeof dctx);
+  dctx.pixmap1 = pixmap1;
+  dctx.pixmap2 = pixmap2;
+  dctx.pixmap_sz = H * cd2_arg.pitch;
+  dctx.fb_id[0] = fb_id;
+  dctx.fb_id[1] = fb2_id;
+  dctx.current_fb_id = fb_id;
+  dctx.crtid = DENC->crtc_id;
+  dctx.swap_count = 0;
+  gettimeofday(&dctx.start, NULL);
+  int DE = DRM_MODE_PAGE_FLIP_EVENT;
+  R = drmModePageFlip(DD, DENC->crtc_id, fb2_id, DE, &dctx);
   if (R) EFAIL("failed to page flip");
 
   struct termios old_tio, new_tio;
@@ -1050,27 +1051,51 @@ int main(int argc, char *argv[]) {
 
   struct epoll_event ev;
   ev.events = EPOLLIN;
-  ev.data.fd = DD;
-  R = epoll_ctl(PD, EPOLL_CTL_ADD, ev.data.fd, &ev);
-  if (R) EFAIL("epoll_ctlfail");
+
   ev.data.fd = SD;
   R = epoll_ctl(PD, EPOLL_CTL_ADD, ev.data.fd, &ev);
-  if (R) EFAIL("epoll_ctlfail");
+  if (R) EFAIL("epoll_ctl");
 
-  for (u64 i = 0;i < 676;i++) {
-    /*T = time(0);
-    mset(L, 0, 80);
-    R = snprintf(L, 80, "%s program loop %lu\n", ctime(&T), i);
-    write(1, L, R);*/
-    R = epoll_wait(PD, &ev, 1, 1000);
-    if (R == -1) { printf("epoll_waitfail: %s\n", strerror(errno)); exit(1); }
-    if (R == 0) { printf("epoll_wait, long time, 1000ms!\n"); continue; }
+  ev.data.fd = DD;
+  R = epoll_ctl(PD, EPOLL_CTL_ADD, ev.data.fd, &ev);
+  if (R) EFAIL("epoll_ctl");
+
+
+  for (u64 i = 0;;i++) {
+    X += 1920;
+    if (X == 1920 * 26) { X = 0; Y += 1080; }
+    R = epoll_wait(PD, &ev, 1, 2601);
+    if (R < 0) EFAIL("epoll_wait");
+    if (R == 0) continue;
     if (ev.events & EPOLLIN) {
-      if (ev.data.fd == DD) { R = drmHandleEvent(DD, &evctx); continue; }
-      if (ev.data.fd == SD) { break; }
+      int fd = ev.data.fd;
+      if (fd == SD) {
+        printf("loop %zu\n", i);
+        /* signalfd */
+      }
+      if (fd == ED) {
+        /* eventfd */
+      }
+      if (fd == TD) {
+        /* timerfd */
+      }
+      if (fd == ND) {
+        /* network */
+      }
+      if (fd == ID) {
+        /* inotify */
+      }
+      for (int ui = 0; ui < 26; ui++) {
+        if (HiD[ui] > 0) {
+          if (HiD_type[ui] == 'k') {}
+          if (HiD_type[ui] == 'm') {}
+        }
+      }
+      if (fd == DD) {
+        R = drmHandleEvent(DD, &evctx);
+      }
     }
   }
-  
   /* done for; restore */
   tcsetattr(STDIN_FILENO, TCSANOW, &old_tio);
   R = drmModeSetCrtc(DD, crtc->crtc_id, crtc->buffer_id,
