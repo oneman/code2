@@ -562,7 +562,7 @@ u8 *P = 0;
 void draw(void) {
   for (int y = 0; y < H; y++) {
     for (int x = 0; x < W; x++) {
-      int pxy = (Y * (1920 * 26 * 3)) + (X * 3);
+      int pxy = ((y + Y) * (1920 * 26 * 3)) + (X * 3) + (x * 3);
       P[(y * W * 4) + (x * 4) + 0] = m[pxy + 0];
       P[(y * W * 4) + (x * 4) + 1] = m[pxy + 1];
       P[(y * W * 4) + (x * 4) + 2] = m[pxy + 2];
@@ -1061,9 +1061,10 @@ int main(int argc, char *argv[]) {
   if (R) EFAIL("epoll_ctl");
 
 
-  for (u64 i = 0;;i++) {
+  for (u64 i = 0; i < 676; i++) {
     X += 1920;
     if (X == 1920 * 26) { X = 0; Y += 1080; }
+    if (Y == 1080 * 26) { Y = 0; }
     R = epoll_wait(PD, &ev, 1, 2601);
     if (R < 0) EFAIL("epoll_wait");
     if (R == 0) continue;
