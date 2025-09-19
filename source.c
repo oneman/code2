@@ -780,8 +780,10 @@ int EFAIL(char *msg) {
 }
 
 int main(int argc, char *argv[]) {
+  u64 E = 0;
   time_t T = time(0);
   time_t T0 = T;
+  u64 TE = E;
   char L[4096];
   mset(L, 0, 4096);
   int AETHER = htons(ETH_P_ALL);
@@ -1068,23 +1070,39 @@ int main(int argc, char *argv[]) {
     R = epoll_wait(PD, &ev, 1, 2601);
     if (R < 0) EFAIL("epoll_wait");
     if (R == 0) continue;
+    if (ev.events & EPOLLERR) EFAIL("EPOLLERR");
+    if (ev.events & EPOLLHUP) EFAIL("EPOLLHUP");
     if (ev.events & EPOLLIN) {
       int fd = ev.data.fd;
       if (fd == SD) {
-        printf("loop %zu\n", i);
-        /* signalfd */
+        for (;;) {
+          R = read(SD, L, sizeof(L));
+          if (R > 0) continue;
+          if ((R == -1) && (errno != EAGAIN)) EFAIL("read SD");
+          break;
+        }
       }
       if (fd == ED) {
-        /* eventfd */
+        read(ED, &E, 8);
       }
       if (fd == TD) {
-        /* timerfd */
+        read(TD, &TE, 8);
       }
       if (fd == ND) {
-        /* network */
+        for (;;) {
+          R = read(ND, L, sizeof(L));
+          if (R > 0) continue;
+          if ((R == -1) && (errno != EAGAIN)) EFAIL("read ND");
+          break;
+        }
       }
       if (fd == ID) {
-        /* inotify */
+        for (;;) {
+          R = read(ID, L, sizeof(L));
+          if (R > 0) continue;
+          if ((R == -1) && (errno != EAGAIN)) EFAIL("read ID");
+          break;
+        }
       }
       for (int ui = 0; ui < 26; ui++) {
         if (HiD[ui] > 0) {
