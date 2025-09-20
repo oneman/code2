@@ -188,25 +188,25 @@ int main(int argc, char *argv[]) {
   char L[4096];
   mset(L, 0, 4096);
   int AETHER = htons(ETH_P_ALL);
-  int R = snprintf(L, 80, "4205260800 start %sgmp %s cairo %s\n", ctime(&T0),
+  int R = snprintf(L, 80, "/* hai! %sgmp %s cairo %s\n", ctime(&T0),
    gmp_version, cairo_version_string());
   write(1, L, R);
   R = setuid(0);
-  if (R) EFAIL("1.0 setuid run with sudo");
+  if (R) EFAIL("setuid run with sudo");
   R = setgid(0);
-  if (R) EFAIL("1.5 setgid run with sudo");
+  if (R) EFAIL("setgid run with sudo");
   R = setvbuf(stdin, NULL, _IONBF, 0);
-  if (R) EFAIL("2 setvbuf stdin _IONBF");
+  if (R) EFAIL("setvbuf stdin _IONBF");
   R = setvbuf(stdout, NULL, _IONBF, 0);
-  if (R) EFAIL("3 setvbuf stdout _IONBF");
+  if (R) EFAIL("setvbuf stdout _IONBF");
   R = setvbuf(stderr, NULL, _IONBF, 0);
-  if (R) EFAIL("4 setvbuf stderr _IONBF");
+  if (R) EFAIL("setvbuf stderr _IONBF");
   struct signalfd_siginfo SNFO;
   sigset_t mask;
   sigemptyset(&mask);
   sigfillset(&mask);
   R = sigprocmask(SIG_BLOCK, &mask, NULL);
-  if (R) EFAIL("5 sigprocmask");
+  if (R) EFAIL("sigprocmask");
   int SD = signalfd(-1, &mask, SFD_NONBLOCK | SFD_CLOEXEC);
   int MD = memfd_create("pixmap-framebuffer", MFD_CLOEXEC);
   int PD = epoll_create1(EPOLL_CLOEXEC);
@@ -216,15 +216,18 @@ int main(int argc, char *argv[]) {
   int ID = inotify_init1(IN_NONBLOCK | IN_CLOEXEC);
   if ((6*6+6) != (SD + MD + PD + ED + TD + ND + ID)) EFAIL("6*6+6=42 PANICAN");
   int WD = inotify_add_watch(ID, "/dev", IN_CREATE);
-  if (WD == -1) EFAIL("6 inotify_add_watch /dev IN_CREATE");
+  if (WD == -1) EFAIL("inotify_add_watch /dev IN_CREATE");
   struct inotify_event INEV;
   R = ftruncate(MD, 4205260800);
-  if (R == -1) EFAIL("7 ftruncate 4205260800");
+  if (R == -1) EFAIL("ftruncate 4205260800");
   m = mmap(NULL, 4205260800, PROT_READ | PROT_WRITE, MAP_SHARED, MD, 0);
-  if (!m) EFAIL("8 mmap 4205260800");
+  if (!m) EFAIL("mmap 4205260800");
   R = mlock(m, 4205260800);
-  if (R == -1) EFAIL("9 mlock 4205260800");
+  if (R == -1) EFAIL("mlock 4205260800");
   mset(m, 'K', 4205260800);
+
+  write(1, "memgood\n", 8);
+
   /*
   pw_init(&argc, &argv);
   char *pw_hdr_ver = pw_get_headers_version();
@@ -296,6 +299,13 @@ int main(int argc, char *argv[]) {
     /*printf("%s\n", L);*/
     R = ioctl(HiD[i], HIDIOCGRAWINFO, &hinfo);
     if (R < 0) EFAIL("HIDIOCGRAWINFO");
+    sprintx(L + 2, (u8 *)&hinfo.vendor, 1);
+    sprintx(L + 0, (u8 *)&hinfo.vendor + 1, 1);
+    L[4] = ':';
+    sprintx(L + 7, (u8 *)&hinfo.product, 1);
+    sprintx(L + 5, (u8 *)&hinfo.product + 1, 1);
+    L[9] = '\n';
+    write(1, L, 10);
     u8 *s = rpt.value;
     sprintx(L, s, rpt.size);
     write(1, L, rpt.size * 2);
@@ -447,11 +457,11 @@ int main(int argc, char *argv[]) {
   R = drmModePageFlip(DD, DENC->crtc_id, fb2_id, DE, &dctx);
   if (R) EFAIL("failed to page flip");
 
-  /*struct termios old_tio, new_tio;
+  struct termios old_tio, new_tio;
   tcgetattr(STDIN_FILENO, &old_tio);
   new_tio = old_tio;
   new_tio.c_lflag &= (~ICANON & ~ECHO);
-  tcsetattr(STDIN_FILENO, TCSANOW, &new_tio);*/
+  tcsetattr(STDIN_FILENO, TCSANOW, &new_tio);
 
   drmEventContext evctx;
   mset(&evctx, 0, sizeof evctx);
@@ -565,6 +575,13 @@ int main(int argc, char *argv[]) {
                   if (R < 0) EFAIL("HIDIOCGRAWPHYS");
                   R = ioctl(HiD[h], HIDIOCGRAWINFO, &hinfo);
                   if (R < 0) EFAIL("HIDIOCGRAWINFO");
+                  sprintx(L + 2, (u8 *)&hinfo.vendor, 1);
+                  sprintx(L + 0, (u8 *)&hinfo.vendor + 1, 1);
+                  L[4] = ':';
+                  sprintx(L + 7, (u8 *)&hinfo.product, 1);
+                  sprintx(L + 5, (u8 *)&hinfo.product + 1, 1);
+                  L[9] = '\n';
+                  write(1, L, 10);
                   u8 *s = rpt.value;
                   sprintx(L, s, rpt.size);
                   write(1, L, rpt.size * 2);
@@ -602,7 +619,7 @@ int main(int argc, char *argv[]) {
     }
   }
   /* ok */
-  /*tcsetattr(STDIN_FILENO, TCSANOW, &old_tio);*/
+  tcsetattr(STDIN_FILENO, TCSANOW, &old_tio);
   R = drmModeSetCrtc(DD, crtc->crtc_id, crtc->buffer_id,
    crtc->x, crtc->y, &DCON->connector_id, 1, &crtc->mode);
   if (R) EFAIL("drmModeSetCrtc() restore original crtc failed");
