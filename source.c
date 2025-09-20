@@ -301,21 +301,9 @@ int main(int argc, char *argv[]) {
     sprintx(L, s, rpt.size);
     write(1, L, rpt.size * 2);
     write(1, "\n", 1);
-    if ((s[0] != 5) || (s[1] != 1) || (s[2] != 9)) continue;
-    if ((s[3] != 2) && (s[3] != 6)) continue;
-    if (s[3] == 2) HiD_type[i] = 'm';
-    if (s[3] == 6) HiD_type[i] = 'k';
-  }
-  for (int i = 0; i < 26; i++) {
-    if (HiD[i] > 0) {
-      if (HiD_type[i] == 'k') printf("keyboard on fd %d\n", HiD[i]);
-      if (HiD_type[i] == 'm') printf("mouse on fd %d\n", HiD[i]);
-      if (HiD_type[i] == 0) {
-        R = close(HiD[i]);
-        if (R == -1) { perror("close"); }
-        /*printf("something else was on fd %d\n", HiD[i]);*/
-        HiD[i] = 0;
-      }
+    if (rpt.value[0] + s[1] + s[2] == 15) {
+      if (s[3] == 2) HiD_type[i] = 'm';
+      if (s[3] == 6) HiD_type[i] = 'k';
     }
   }
   T = time(0);
@@ -454,11 +442,11 @@ int main(int argc, char *argv[]) {
   R = drmModePageFlip(DD, DENC->crtc_id, fb2_id, DE, &dctx);
   if (R) EFAIL("failed to page flip");
 
-  struct termios old_tio, new_tio;
+  /*struct termios old_tio, new_tio;
   tcgetattr(STDIN_FILENO, &old_tio);
   new_tio = old_tio;
   new_tio.c_lflag &= (~ICANON & ~ECHO);
-  tcsetattr(STDIN_FILENO, TCSANOW, &new_tio);
+  tcsetattr(STDIN_FILENO, TCSANOW, &new_tio);*/
 
   drmEventContext evctx;
   mset(&evctx, 0, sizeof evctx);
@@ -473,9 +461,33 @@ int main(int argc, char *argv[]) {
   R = epoll_ctl(PD, EPOLL_CTL_ADD, ev.data.fd, &ev);
   if (R) EFAIL("epoll_ctl");
 
+  ev.data.fd = ED;
+  R = epoll_ctl(PD, EPOLL_CTL_ADD, ev.data.fd, &ev);
+  if (R) EFAIL("epoll_ctl");
+
+  ev.data.fd = TD;
+  R = epoll_ctl(PD, EPOLL_CTL_ADD, ev.data.fd, &ev);
+  if (R) EFAIL("epoll_ctl");
+
+  ev.data.fd = ND;
+  R = epoll_ctl(PD, EPOLL_CTL_ADD, ev.data.fd, &ev);
+  if (R) EFAIL("epoll_ctl");
+  
+  ev.data.fd = ID;
+  R = epoll_ctl(PD, EPOLL_CTL_ADD, ev.data.fd, &ev);
+  if (R) EFAIL("epoll_ctl");
+
   ev.data.fd = DD;
   R = epoll_ctl(PD, EPOLL_CTL_ADD, ev.data.fd, &ev);
   if (R) EFAIL("epoll_ctl");
+
+  for (int i = 0; i < 26; i++) {
+    if (HiD[i] > 0) {
+      ev.data.fd = HiD[i];
+      R = epoll_ctl(PD, EPOLL_CTL_ADD, ev.data.fd, &ev);
+      if (R) EFAIL("epoll_ctl");
+    }
+  }
 
   for (u64 i = 0; i < 676; i++) {
     X += 1920;
@@ -524,9 +536,50 @@ int main(int argc, char *argv[]) {
     if (fd == ID) {
       for (;;) {
         R = read(ID, &INEV, sizeof(INEV));
-        if (R > 0) continue;
         if ((R == -1) && (errno != EAGAIN)) EFAIL("read ID");
-        break;
+        if (R > 0) {
+          if ((INEV.wd == WD) && (INEV.mask & IN_CREATE)) {
+            if (INEV.len > 6 && INEV.len < 9) {
+              struct hidraw_report_descriptor rpt;
+              struct hidraw_devinfo hinfo;
+              char devname[16];
+              snprintf(devname, 16, "/dev/%s", INEV.name);
+              if (!(mcmp(devname + 6, "hidraw", 6))) continue;
+              int hfd = open(devname, O_RDONLY | O_NONBLOCK);
+              if (hfd > 0) {
+                for (int h = 0; h < 26; h++) {
+                  if (!HiD[h]) HiD[h] = hfd;
+                  R = ioctl(HiD[h], HIDIOCGRDESCSIZE, &rpt.size);
+                  if ((R < 0) || (rpt.size < 4)) EFAIL("HIDIOCGRDESCSIZE");
+                  R = ioctl(HiD[h], HIDIOCGRDESC, &rpt);
+                  if (R < 0) EFAIL("HIDIOCGRDESC");
+                  R = ioctl(HiD[h], HIDIOCGRAWNAME(256), &L);
+                  if (R < 0) EFAIL("HIDIOCGRAWNAME");
+                  printf("%s\n", L);
+                  R = ioctl(HiD[h], HIDIOCGRAWPHYS(256), &L);
+                  if (R < 0) EFAIL("HIDIOCGRAWPHYS");
+                  printf("%s\n", L);
+                  R = ioctl(HiD[h], HIDIOCGRAWINFO, &hinfo);
+                  if (R < 0) EFAIL("HIDIOCGRAWINFO");
+                  printf("%d:%d\n", hinfo.vendor, hinfo.product);
+                  u8 *s = rpt.value;
+                  sprintx(L, s, rpt.size);
+                  write(1, L, rpt.size * 2);
+                  write(1, "\n", 1);
+                  if (rpt.value[0] + s[1] + s[2] == 15) {
+                    if (s[3] == 2) HiD_type[i] = 'm';
+                    if (s[3] == 6) HiD_type[i] = 'k';
+                    ev.data.fd = HiD[h];
+                    R = epoll_ctl(PD, EPOLL_CTL_ADD, ev.data.fd, &ev);
+                    if (R) EFAIL("epoll_ctl");
+                  }
+                }
+              }
+            }
+            continue;
+          }
+          break;
+        }
       }
     }
     for (int h = 0; h < 26; h++) {
@@ -546,7 +599,7 @@ int main(int argc, char *argv[]) {
     }
   }
   /* ok */
-  tcsetattr(STDIN_FILENO, TCSANOW, &old_tio);
+  /*tcsetattr(STDIN_FILENO, TCSANOW, &old_tio);*/
   R = drmModeSetCrtc(DD, crtc->crtc_id, crtc->buffer_id,
    crtc->x, crtc->y, &DCON->connector_id, 1, &crtc->mode);
   if (R) EFAIL("drmModeSetCrtc() restore original crtc failed");

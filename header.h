@@ -82,7 +82,7 @@ u64 strsz(const char *str) {
   return n;
 }
 
-u64 mcmp(const char *a, const char *b, u64 sz) {
+u64 mcmp(char *a, char *b, u64 sz) {
   u64 n = 0;
   for (n = 0; n < sz; n++) { if (a[n] != b[n]) return n; }
   return 0;
