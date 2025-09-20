@@ -12,7 +12,7 @@ u8 *P = 0;
 void draw(void) {
   for (int y = 0; y < H; y++) {
     for (int x = 0; x < W; x++) {
-      int pxy = 0;
+      u32 pxy = 0;
       pxy += Y * 1920 * 26 * 3;
       pxy += y * 1920 * 26 * 3;
       pxy += X * 3;
@@ -334,7 +334,7 @@ int main(int argc, char *argv[]) {
     u8 *dat = cairo_image_surface_get_data(cst);
     for (int y = 0; y < 1080; y++) {
       for (int x = 0; x < 1920; x++) {
-        int pxy = ((i % 26) * (1920 * 3)) + (y * (1920 * 26 * 3)) + (x * 3);
+        u32 pxy = ((i % 26) * (1920 * 3)) + (y * (1920 * 26 * 3)) + (x * 3);
         m[pxy] = dat[(y * 1920 * 4) + (x * 4)];
         m[pxy + 1] = dat[(y * 1920 * 4) + (x * 4) + 1];
         m[pxy + 2] = dat[(y * 1920 * 4) + (x * 4) + 2];
