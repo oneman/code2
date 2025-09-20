@@ -1,5 +1,7 @@
 #include "header.h"
 
+u8 K[8] = {0,0,0,0,0,0,0,0};
+u8 M[4] = {0,0,0,0};
 u8 *m = 0;
 int X = 49920 - 49920;
 int Y = 28080 - 28080;
@@ -10,7 +12,11 @@ u8 *P = 0;
 void draw(void) {
   for (int y = 0; y < H; y++) {
     for (int x = 0; x < W; x++) {
-      int pxy = ((y + Y) * (1920 * 26 * 3)) + (X * 3) + (x * 3);
+      int pxy = 0;
+      pxy += Y * 1920 * 26 * 3;
+      pxy += y * 1920 * 26 * 3;
+      pxy += X * 3;
+      pxy += x * 3;
       P[(y * W * 4) + (x * 4) + 0] = m[pxy + 0];
       P[(y * W * 4) + (x * 4) + 1] = m[pxy + 1];
       P[(y * W * 4) + (x * 4) + 2] = m[pxy + 2];
@@ -58,59 +64,6 @@ void pageflip(int fd, u32 frame, u32 sec, u32 usec, void *data) {
     context->start = end;
   }
 }
-/*
-    if (mouse) {
-      char b[4];
-      ret = read(id, b, 4);
-      if (ret != 4) {
-        perror("read mouse problem");
-        return 1;
-      }
-      char out[8];
-      sprintx(out, b, 4);
-      write(1, out, 8);
-      write(1, "\n", 1);
-      printf("%d %d %d %d\n", scanx(out), scanx(out + 2),
-       scanx(out + 4), scanx(out + 6));
-    }
-
-    if (keyboard) {
-      char b[8];
-      ret = read(id, b, 8);
-      if (ret != 8) {
-        perror("read keyboard problem");
-        return 1;
-      }
-      char out[16];
-      sprintx(out, b, 8);
-*//*
-      write(1, out, 16);
-      write(1, "\n", 1);
-      printf("%d %d %d %d %d %d %d %d\n",
-       scanx(out + 0), scanx(out + 2),
-       scanx(out + 4), scanx(out + 6),
-       scanx(out + 8), scanx(out + 10),
-       scanx(out + 12), scanx(out + 14));
-      printmod(b);
-*//*
-      if ((b[0]) && (b[2])) {
-	if (controling(b[0])) printf("Control-");
-	if (alting(b[0])) printf("Alt-");
-	if (metaing(b[0])) printf("Meta-");
-      }
-      if (b[2]) {
-        if (textkey(b[2])) {
-          if (shifting(b[0])) {
-            printf("%c\n", usbkeyboardlabeltable[b[2]][1]);
-          } else {
-            printf("%c\n", usbkeyboardlabeltable[b[2]][0]);
-          }
-        } else {
-          printf("%s\n", usbkeyboardlabeltable[b[2]]);
-        }
-      }
-    }
-*/
 
 char *usbkeyboardlabeltable[] = {
   "", "", "", "",
@@ -235,7 +188,7 @@ int main(int argc, char *argv[]) {
   char L[4096];
   mset(L, 0, 4096);
   int AETHER = htons(ETH_P_ALL);
-  int R = snprintf(L, 80, "program 2601 begins %sgmp %s cairo %s\n", ctime(&T0),
+  int R = snprintf(L, 80, "4205260800 start %sgmp %s cairo %s\n", ctime(&T0),
    gmp_version, cairo_version_string());
   write(1, L, R);
   R = setuid(0);
@@ -248,6 +201,7 @@ int main(int argc, char *argv[]) {
   if (R) EFAIL("3 setvbuf stdout _IONBF");
   R = setvbuf(stderr, NULL, _IONBF, 0);
   if (R) EFAIL("4 setvbuf stderr _IONBF");
+  struct signalfd_siginfo SNFO;
   sigset_t mask;
   sigemptyset(&mask);
   sigfillset(&mask);
@@ -263,6 +217,7 @@ int main(int argc, char *argv[]) {
   if ((6*6+6) != (SD + MD + PD + ED + TD + ND + ID)) EFAIL("6*6+6=42 PANICAN");
   int WD = inotify_add_watch(ID, "/dev", IN_CREATE);
   if (WD == -1) EFAIL("6 inotify_add_watch /dev IN_CREATE");
+  struct inotify_event INEV;
   R = ftruncate(MD, 4205260800);
   if (R == -1) EFAIL("7 ftruncate 4205260800");
   m = mmap(NULL, 4205260800, PROT_READ | PROT_WRITE, MAP_SHARED, MD, 0);
@@ -277,6 +232,7 @@ int main(int argc, char *argv[]) {
   if (strsz(pw_hdr_ver) != strsz(pw_lib_ver)) return 42;
   if (mcmp(pw_hdr_ver, pw_lib_ver, strsz(pw_lib_ver))) return 666;
   printf("Pipewire %s\n", pw_hdr_ver); */
+
   /* void mp_set_memory_functions
       void *(*alloc_func_ptr) (size_t),
       void *(*realloc_func_ptr) (void *, size_t, size_t),
@@ -320,7 +276,9 @@ int main(int argc, char *argv[]) {
   }
   for (int i = 0; i < 26; i++) {
     struct hidraw_report_descriptor rpt;
+    struct hidraw_devinfo hinfo;
     mset(&rpt, 0, sizeof(rpt));
+    mset(&rpt, 0, sizeof(hinfo));
     char devname[16];
     snprintf(devname, 16, "/dev/hidraw%d", i);
     R = open(devname, O_RDONLY | O_NONBLOCK);
@@ -330,6 +288,15 @@ int main(int argc, char *argv[]) {
     if ((R < 0) || (rpt.size < 4)) EFAIL("HIDIOCGRDESCSIZE");
     R = ioctl(HiD[i], HIDIOCGRDESC, &rpt);
     if (R < 0) EFAIL("HIDIOCGRDESC");
+    R = ioctl(HiD[i], HIDIOCGRAWNAME(256), &L);
+    if (R < 0) EFAIL("HIDIOCGRAWNAME");
+    printf("%s\n", L);
+    R = ioctl(HiD[i], HIDIOCGRAWPHYS(256), &L);
+    if (R < 0) EFAIL("HIDIOCGRAWPHYS");
+    printf("%s\n", L);
+    R = ioctl(HiD[i], HIDIOCGRAWINFO, &hinfo);
+    if (R < 0) EFAIL("HIDIOCGRAWINFO");
+    printf("%d:%d\n", hinfo.vendor, hinfo.product);
     u8 *s = rpt.value;
     sprintx(L, s, rpt.size);
     write(1, L, rpt.size * 2);
@@ -510,60 +477,75 @@ int main(int argc, char *argv[]) {
   R = epoll_ctl(PD, EPOLL_CTL_ADD, ev.data.fd, &ev);
   if (R) EFAIL("epoll_ctl");
 
-
   for (u64 i = 0; i < 676; i++) {
     X += 1920;
     if (X == 1920 * 26) { X = 0; Y += 1080; }
     if (Y == 1080 * 26) { Y = 0; }
     R = epoll_wait(PD, &ev, 1, 2601);
+    int fd = ev.data.fd;
     if (R < 0) EFAIL("epoll_wait");
     if (R == 0) continue;
-    if (ev.events & EPOLLERR) EFAIL("EPOLLERR");
-    if (ev.events & EPOLLHUP) EFAIL("EPOLLHUP");
-    if (ev.events & EPOLLIN) {
-      int fd = ev.data.fd;
-      if (fd == SD) {
-        for (;;) {
-          R = read(SD, L, sizeof(L));
-          if (R > 0) continue;
-          if ((R == -1) && (errno != EAGAIN)) EFAIL("read SD");
-          break;
+    if ((ev.events & EPOLLERR) || (ev.events & EPOLLHUP)) {
+      for (int h = 0; h < 26; h++) {
+        if (fd == HiD[h]) {
+          R = close(fd);
+          if (R) EFAIL("close");
+          HiD[h] = 0;
         }
       }
-      if (fd == ED) {
-        read(ED, &E, 8);
-      }
-      if (fd == TD) {
-        read(TD, &TE, 8);
-      }
-      if (fd == ND) {
-        for (;;) {
-          R = read(ND, L, sizeof(L));
-          if (R > 0) continue;
-          if ((R == -1) && (errno != EAGAIN)) EFAIL("read ND");
-          break;
-        }
-      }
-      if (fd == ID) {
-        for (;;) {
-          R = read(ID, L, sizeof(L));
-          if (R > 0) continue;
-          if ((R == -1) && (errno != EAGAIN)) EFAIL("read ID");
-          break;
-        }
-      }
-      for (int ui = 0; ui < 26; ui++) {
-        if (HiD[ui] > 0) {
-          if (HiD_type[ui] == 'k') {}
-          if (HiD_type[ui] == 'm') {}
-        }
-      }
-      if (fd == DD) {
-        R = drmHandleEvent(DD, &evctx);
+      if (fd <= DD) {
+        if (ev.events & EPOLLHUP) EFAIL("EPOLLHUP");
+        if (ev.events & EPOLLERR) EFAIL("EPOLLERR");
       }
     }
+    if (!(ev.events & EPOLLIN)) continue;
+    if (fd == SD) {
+      for (;;) {
+        R = read(SD, &SNFO, sizeof(SNFO));
+        if (R > 0) continue;
+        if ((R == -1) && (errno != EAGAIN)) EFAIL("read SD");
+        break;
+      }
+    }
+    if (fd == ED) {
+      read(ED, &E, 8);
+    }
+    if (fd == TD) {
+      read(TD, &TE, 8);
+    }
+    if (fd == ND) {
+      for (;;) {
+        R = read(ND, L, sizeof(L));
+        if (R > 0) continue;
+        if ((R == -1) && (errno != EAGAIN)) EFAIL("read ND");
+        break;
+      }
+    }
+    if (fd == ID) {
+      for (;;) {
+        R = read(ID, &INEV, sizeof(INEV));
+        if (R > 0) continue;
+        if ((R == -1) && (errno != EAGAIN)) EFAIL("read ID");
+        break;
+      }
+    }
+    for (int h = 0; h < 26; h++) {
+      if (fd == HiD[h]) {
+        if (HiD_type[h] == 'k') {
+          R = read(fd, &K, 8);
+          if (R != 8) EFAIL("read keyboard");
+        }
+        if (HiD_type[h] == 'm') {
+          R = read(fd, &M, 4);
+          if (R != 8) EFAIL("read mouse");
+        }
+      }
+    }
+    if (fd == DD) {
+      R = drmHandleEvent(DD, &evctx);
+    }
   }
-  /* done for; restore */
+  /* ok */
   tcsetattr(STDIN_FILENO, TCSANOW, &old_tio);
   R = drmModeSetCrtc(DD, crtc->crtc_id, crtc->buffer_id,
    crtc->x, crtc->y, &DCON->connector_id, 1, &crtc->mode);
