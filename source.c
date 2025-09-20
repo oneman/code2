@@ -43,11 +43,11 @@ void pageflip(int fd, u32 frame, u32 sec, u32 usec, void *data) {
   context = (struct dctx *)data;
   if (context->current_fb_id == context->fb_id[0]) {
     new_fb_id = context->fb_id[1];
-    mset(context->pixmap2, 255 - context->swap_count, context->pixmap_sz);
+    /*mset(context->pixmap2, 255 - context->swap_count, context->pixmap_sz);*/
     P = context->pixmap2;
   } else {
     new_fb_id = context->fb_id[0];
-    mset(context->pixmap1, 255 - (context->swap_count * 2), context->pixmap_sz);
+    /*mset(context->pixmap1, 65 + context->swap_count, context->pixmap_sz);*/
     P = context->pixmap1;
   }
   draw();
@@ -290,13 +290,12 @@ int main(int argc, char *argv[]) {
     if (R < 0) EFAIL("HIDIOCGRDESC");
     R = ioctl(HiD[i], HIDIOCGRAWNAME(256), &L);
     if (R < 0) EFAIL("HIDIOCGRAWNAME");
-    printf("%s\n", L);
+    /*printf("%s\n", L);*/
     R = ioctl(HiD[i], HIDIOCGRAWPHYS(256), &L);
     if (R < 0) EFAIL("HIDIOCGRAWPHYS");
-    printf("%s\n", L);
+    /*printf("%s\n", L);*/
     R = ioctl(HiD[i], HIDIOCGRAWINFO, &hinfo);
     if (R < 0) EFAIL("HIDIOCGRAWINFO");
-    printf("%d:%d\n", hinfo.vendor, hinfo.product);
     u8 *s = rpt.value;
     sprintx(L, s, rpt.size);
     write(1, L, rpt.size * 2);
@@ -309,7 +308,9 @@ int main(int argc, char *argv[]) {
   T = time(0);
   printf("%sloading pixmap from pngs\n", ctime(&T));
   for (int i = 0; i < 676; i++) {
-  /* continue; */
+    X += 1920;
+    if (X == 1920 * 26) { X = 0; Y += 1080; }
+    if (Y == 1080 * 26) { Y = 0; }
     char c1 = 96 + 1 + (i / 26);
     char c2 = 96 + 1 + (i % 26);
     char filename[256];
@@ -334,7 +335,11 @@ int main(int argc, char *argv[]) {
     u8 *dat = cairo_image_surface_get_data(cst);
     for (int y = 0; y < 1080; y++) {
       for (int x = 0; x < 1920; x++) {
-        u32 pxy = ((i % 26) * (1920 * 3)) + (y * (1920 * 26 * 3)) + (x * 3);
+        u32 pxy = 0;
+        pxy += Y * 1920 * 26 * 3;
+        pxy += y * 1920 * 26 * 3;
+        pxy += X * 3;
+        pxy += x * 3;
         m[pxy] = dat[(y * 1920 * 4) + (x * 4)];
         m[pxy + 1] = dat[(y * 1920 * 4) + (x * 4) + 1];
         m[pxy + 2] = dat[(y * 1920 * 4) + (x * 4) + 2];
@@ -558,10 +563,8 @@ int main(int argc, char *argv[]) {
                   printf("%s\n", L);
                   R = ioctl(HiD[h], HIDIOCGRAWPHYS(256), &L);
                   if (R < 0) EFAIL("HIDIOCGRAWPHYS");
-                  printf("%s\n", L);
                   R = ioctl(HiD[h], HIDIOCGRAWINFO, &hinfo);
                   if (R < 0) EFAIL("HIDIOCGRAWINFO");
-                  printf("%d:%d\n", hinfo.vendor, hinfo.product);
                   u8 *s = rpt.value;
                   sprintx(L, s, rpt.size);
                   write(1, L, rpt.size * 2);
