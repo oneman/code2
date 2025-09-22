@@ -65,22 +65,20 @@ void pageflip(int fd, u32 frame, u32 sec, u32 usec, void *data) {
   }
 }
 
-char *usbkeyboardlabeltable[] = {
+char *KT[] = {
   "", "", "", "",
   "aA", "bB", "cC", "dD", "eE", "fF", "gG", "hH", "iI", "jJ", "kK", "lL", "mM",
   "nN", "oO", "pP", "qQ", "rR", "sS", "tT", "uU", "vV", "wW", "xX", "yY", "zZ",
-  "1!","2@","3#","4$","5%","6^","7&","8*","9(","0)",
+  "1!", "2@", "3#", "4$", "5%", "6^", "7&", "8*", "9(", "0)",
   "Enter", "Escape", "Backspace", "Tab",
-  " ",
-  "-_", "=+", "[{", "]}",	"\\|", "", ";:", "'\"", "`~", ",<", ".>", "/?",
+  "  ", "-_", "=+", "[{", "]}", "\\|", "", ";:", "'\"", "`~", ",<", ".>", "/?",
   "CapsLock",
-  "F1","F2","F3","F4","F5","F6","F7","F8","F9","F10","F11","F12",
+  "F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11", "F12",
   "Print", "ScrollLock", "Pause",
   "Insert", "Home", "PageUp", "Delete", "End", "PageDown",
   "Right", "Left", "Down", "Up",
   "NumLock", "/", "*", "-", "+", "Enter",
-  "1", "2", "3", "4", "5", "6", "7", "8", "9", "0",
-  ".", "", "Menu"
+  "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", ".", "", "Menu"
 };
 
 int textkey(char k) {
@@ -271,6 +269,9 @@ int main(int argc, char *argv[]) {
   mpz_clear(e);
   mpz_clear(f);
   mpz_clear(g);
+  T = time(0);
+  R = snprintf(L, 80, "* hid scan %s", ctime(&T));
+  write(1, L, R);
   int HiD[26];
   char HiD_type[26];
   for (int i = 0; i < 26; i++) {
@@ -316,7 +317,8 @@ int main(int argc, char *argv[]) {
     }
   }
   T = time(0);
-  printf("%sloading pixmap from pngs\n", ctime(&T));
+  R = snprintf(L, 80, "* loading %s", ctime(&T));
+  write(1, L, R);
   for (int i = 0; i < 676; i++) {
     X += 1920;
     if (X == 1920 * 26) { X = 0; Y += 1080; }
@@ -329,12 +331,16 @@ int main(int argc, char *argv[]) {
     if (!map_dir) map_dir = "/map";
     snprintf(filename, 256, "%s/%c/%c/%s%s.png", map_dir, c1, c2,
      nato[c1 - 97], nato[c2 - 97]);
-     /*printf("Loading %3d %s\n", i, filename);*/
-     cairo_surface_t *cst = cairo_image_surface_create_from_png(filename);
-     cairo_status_t cairo_errno = cairo_surface_status(cst);
-     if (cairo_errno) {
-       printf("PC_LOAD_LETTER %s\n", cairo_status_to_string(cairo_errno));
-       continue;
+    cairo_surface_t *cst = cairo_image_surface_create_from_png(filename);
+    cairo_status_t cairo_errno = cairo_surface_status(cst);
+    if (cairo_errno) {
+      printf("PC_LOAD_LETTER\n");
+      break;
+    }
+    if (i % 26 == 0) {
+      T = time(0);
+      R = snprintf(L, 80, "* loading %3d %s %s", i, filename, ctime(&T));
+      write(1, L, R);
     }
     if ((cairo_image_surface_get_width(cst) != 1920)
      || (cairo_image_surface_get_height(cst) != 1080)
@@ -413,7 +419,7 @@ int main(int argc, char *argv[]) {
   if (R) EFAIL("DRM_IOCTL_MODE_MAP_DUMB");
   u8 *pixmap1 = mmap(0, cd_arg.size, PROT_READ | PROT_WRITE, MAP_SHARED, DD,
                        md_arg.offset);
-  mset(pixmap1, 126, cd_arg.pitch * H);
+  mset(pixmap1, 0xFF, cd_arg.pitch * H);
   R = drmModeAddFB(DD, W, H, 24, 32, cd_arg.pitch, cd_arg.handle, &fb_id);
   if (R) EFAIL("drmModeAddFB");
 
@@ -438,7 +444,7 @@ int main(int argc, char *argv[]) {
   if (R) EFAIL("DRM_IOCTL_MODE_MAP_DUMB");
   u8 *pixmap2 = mmap(0, cd2_arg.size, PROT_READ | PROT_WRITE, MAP_SHARED, DD,
                           md2_arg.offset);
-  mset(pixmap2, 126, cd2_arg.pitch * H);
+  mset(pixmap2, 0xFF, cd2_arg.pitch * H);
   R = drmModeAddFB(DD, W, H, 24, 32, cd2_arg.pitch, cd2_arg.handle, &fb2_id);
   if (R) EFAIL("drmModeAddFB failed");
 
@@ -504,7 +510,8 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  for (u64 i = 0; i < 676; i++) {
+  for (;;) {
+    if (K[3] == 66) break;
     X += 1920;
     if (X == 1920 * 26) { X = 0; Y += 1080; }
     if (Y == 1080 * 26) { Y = 0; }
@@ -587,8 +594,8 @@ int main(int argc, char *argv[]) {
                   write(1, L, rpt.size * 2);
                   write(1, "\n", 1);
                   if (rpt.value[0] + s[1] + s[2] == 15) {
-                    if (s[3] == 2) HiD_type[i] = 'm';
-                    if (s[3] == 6) HiD_type[i] = 'k';
+                    if (s[3] == 2) HiD_type[h] = 'm';
+                    if (s[3] == 6) HiD_type[h] = 'k';
                     ev.data.fd = HiD[h];
                     R = epoll_ctl(PD, EPOLL_CTL_ADD, ev.data.fd, &ev);
                     if (R) EFAIL("epoll_ctl");
