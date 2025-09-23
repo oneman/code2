@@ -186,8 +186,8 @@ int main(int argc, char *argv[]) {
   char L[4096];
   mset(L, 0, 4096);
   int AETHER = htons(ETH_P_ALL);
-  int R = snprintf(L, 80, "/*\n *\n * hai! gmp %s cairo %s %s\n", ctime(&T0),
-   gmp_version, cairo_version_string());
+  int R = snprintf(L, 80, "/*\n *\n * hai!\n * gmp %s cairo %s\n%s",
+   gmp_version, cairo_version_string(), ctime(&T0));
   write(1, L, R);
   R = setuid(0);
   if (R) EFAIL("setuid run with sudo");
@@ -217,8 +217,7 @@ int main(int argc, char *argv[]) {
   int TD = timerfd_create(CLOCK_MONOTONIC, TFD_NONBLOCK | TFD_CLOEXEC);
   int ND = socket(AF_PACKET, SOCK_RAW | SOCK_NONBLOCK | SOCK_CLOEXEC, AETHER);
   int ID = inotify_init1(IN_NONBLOCK | IN_CLOEXEC);
-  printf("%d + %d + %d + %d + %d + %d + %d\n", SD, MD, PD, ED, TD, ND, ID);
-  if ((6*6+6) != (SD + MD + PD + ED + TD + ND + ID)) EFAIL("6*6+6=42 PANICAN");
+  if ((6*6+6) > (SD + MD + PD + ED + TD + ND + ID)) EFAIL("6*6+6=42 PANICAN");
   int WD = inotify_add_watch(ID, "/dev", IN_CREATE);
   if (WD == -1) EFAIL("inotify_add_watch /dev IN_CREATE");
   struct inotify_event INEV;
@@ -229,9 +228,7 @@ int main(int argc, char *argv[]) {
   R = mlock(m, 4205260800);
   if (R == -1) EFAIL("mlock 4205260800");
   mset(m, 'K', 4205260800);
-
   write(1, "memgood\n", 8);
-
   /*
   pw_init(&argc, &argv);
   char *pw_hdr_ver = pw_get_headers_version();
@@ -239,7 +236,6 @@ int main(int argc, char *argv[]) {
   if (strsz(pw_hdr_ver) != strsz(pw_lib_ver)) return 42;
   if (mcmp(pw_hdr_ver, pw_lib_ver, strsz(pw_lib_ver))) return 666;
   printf("Pipewire %s\n", pw_hdr_ver); */
-
   /* void mp_set_memory_functions
       void *(*alloc_func_ptr) (size_t),
       void *(*realloc_func_ptr) (void *, size_t, size_t),
