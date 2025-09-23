@@ -171,7 +171,7 @@ void sprintx(char *dst, u8 *src, int n)  {
 }
 
 int EFAIL(char *msg) {
-  perror(msg);
+  if (errno) perror(msg);
   write(1, "\nFAIL\n", 6);
   write(1, msg, strlen(msg));
   write(1, "\n", 1);
@@ -217,6 +217,7 @@ int main(int argc, char *argv[]) {
   int TD = timerfd_create(CLOCK_MONOTONIC, TFD_NONBLOCK | TFD_CLOEXEC);
   int ND = socket(AF_PACKET, SOCK_RAW | SOCK_NONBLOCK | SOCK_CLOEXEC, AETHER);
   int ID = inotify_init1(IN_NONBLOCK | IN_CLOEXEC);
+  printf("%d + %d + %d + %d + %d + %d + %d\n", SD, MD, PD, ED, TD, ND, ID);
   if ((6*6+6) != (SD + MD + PD + ED + TD + ND + ID)) EFAIL("6*6+6=42 PANICAN");
   int WD = inotify_add_watch(ID, "/dev", IN_CREATE);
   if (WD == -1) EFAIL("inotify_add_watch /dev IN_CREATE");
