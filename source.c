@@ -33,7 +33,13 @@ struct dctx {
   u8 *pixmap1;
   u8 *pixmap2;
   int pixmap_sz;
+  int complete;
 };
+
+static void vblank(int fd, unsigned int frame, unsigned int sec,
+ unsigned int usec, void *data) {
+  printf("vblank\n");
+}
 
 void pageflip(int fd, u32 frame, u32 sec, u32 usec, void *data) {
   struct dctx *context;
@@ -41,6 +47,7 @@ void pageflip(int fd, u32 frame, u32 sec, u32 usec, void *data) {
   struct timeval end;
   double t;
   context = (struct dctx *)data;
+  if (context->complete == 1) { context->complete = 2; return; }
   if (context->current_fb_id == context->fb_id[0]) {
     new_fb_id = context->fb_id[1];
     /*mset(context->pixmap2, 255 - context->swap_count, context->pixmap_sz);*/
@@ -460,6 +467,7 @@ int main(int argc, char *argv[]) {
   dctx.current_fb_id = fb_id;
   dctx.crtid = DENC->crtc_id;
   dctx.swap_count = 0;
+  dctx.complete = 0;
   gettimeofday(&dctx.start, NULL);
   int DE = DRM_MODE_PAGE_FLIP_EVENT;
   R = drmModePageFlip(DD, DENC->crtc_id, fb2_id, DE, &dctx);
@@ -468,7 +476,7 @@ int main(int argc, char *argv[]) {
   drmEventContext evctx;
   mset(&evctx, 0, sizeof evctx);
   evctx.version = DRM_EVENT_CONTEXT_VERSION;
-  evctx.vblank_handler = NULL;
+  evctx.vblank_handler = vblank;
   evctx.page_flip_handler = pageflip;
 
   struct epoll_event ev;
@@ -506,9 +514,10 @@ int main(int argc, char *argv[]) {
     }
   }
   for (;;) {
-    int dei = 0;
-    for (int k = 2; k < 8; k++) { if (K[k] == 0x3d) dei = 83; }
-    if (dei++ > 82) break;
+    if (dctx.complete == 2) break;
+    for (int k = 2; k < 8; k++) {
+      if (K[k] == 0x3d) dctx.complete = 1;
+    }
     X += 1920;
     if (X == 1920 * 26) { X = 0; Y += 1080; }
     if (Y == 1080 * 26) { Y = 0; }
