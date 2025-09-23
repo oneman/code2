@@ -186,7 +186,7 @@ int main(int argc, char *argv[]) {
   char L[4096];
   mset(L, 0, 4096);
   int AETHER = htons(ETH_P_ALL);
-  int R = snprintf(L, 80, "/* hai! %sgmp %s cairo %s\n", ctime(&T0),
+  int R = snprintf(L, 80, "/*\n *\n * hai! gmp %s cairo %s %s\n", ctime(&T0),
    gmp_version, cairo_version_string());
   write(1, L, R);
   R = setuid(0);
@@ -205,6 +205,11 @@ int main(int argc, char *argv[]) {
   sigfillset(&mask);
   R = sigprocmask(SIG_BLOCK, &mask, NULL);
   if (R) EFAIL("sigprocmask");
+  struct termios old_tio, new_tio;
+  tcgetattr(STDIN_FILENO, &old_tio);
+  new_tio = old_tio;
+  new_tio.c_lflag &= (~ICANON & ~ECHO);
+  tcsetattr(STDIN_FILENO, TCSANOW, &new_tio);
   int SD = signalfd(-1, &mask, SFD_NONBLOCK | SFD_CLOEXEC);
   int MD = memfd_create("pixmap-framebuffer", MFD_CLOEXEC);
   int PD = epoll_create1(EPOLL_CLOEXEC);
@@ -463,12 +468,6 @@ int main(int argc, char *argv[]) {
   R = drmModePageFlip(DD, DENC->crtc_id, fb2_id, DE, &dctx);
   if (R) EFAIL("failed to page flip");
 
-  struct termios old_tio, new_tio;
-  tcgetattr(STDIN_FILENO, &old_tio);
-  new_tio = old_tio;
-  new_tio.c_lflag &= (~ICANON & ~ECHO);
-  tcsetattr(STDIN_FILENO, TCSANOW, &new_tio);
-
   drmEventContext evctx;
   mset(&evctx, 0, sizeof evctx);
   evctx.version = DRM_EVENT_CONTEXT_VERSION;
@@ -509,9 +508,10 @@ int main(int argc, char *argv[]) {
       if (R) EFAIL("epoll_ctl");
     }
   }
-
   for (;;) {
-    if (K[3] == 66) break;
+    int dei = 0;
+    for (int k = 2; k < 8; k++) { if (K[k] == 0x3d) dei = 83; }
+    if (dei++ > 82) break;
     X += 1920;
     if (X == 1920 * 26) { X = 0; Y += 1080; }
     if (Y == 1080 * 26) { Y = 0; }
