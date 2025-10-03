@@ -620,6 +620,9 @@ int main(int argc, char *argv[]) {
         if (HiD_type[h] == 'k') {
           R = read(fd, &K, 8);
           if (R != 8) EFAIL("read keyboard");
+          for (int k = 0; k < 6; k++) {
+            int kd = K[2 + k];
+          }
         }
         if (HiD_type[h] == 'm') {
           R = read(fd, &M, 4);
