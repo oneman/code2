@@ -683,14 +683,16 @@ int main(int argc, char *argv[]) {
         if (HiD_type[h] == 'k') {
           R = read(fd, &K, 8);
           if (R != 8) EFAIL("read keyboard");
-          if (((K[0] & 0b00000001) || (K[0] & 0b00010000)) /* ctrl */
-           && ((K[0] & 0b00000100) || (K[0] & 0b01000000))) /* alt */ {
+          if (((K[0] & 0b00000001) || (K[0] & 0b00010000))
+           && ((K[0] & 0b00000100) || (K[0] & 0b01000000))) {
             for (int k = 0; k < 6; k++) {
               int kd = K[2 + k];
-              if (kd == USBKEY_UP) Y--;
-              if (kd == USBKEY_DOWN) Y++;
-              if (kd == USBKEY_LEFT) X--;
-              if (kd == USBKEY_RIGHT) X++;
+              int mov = 1;
+              if ((K[0] & 0b00000010) || (K[0] & 0b00100000)) { mov = 26; }
+              if (kd == USBKEY_UP) { if (Y > 0) Y -= mov; }
+              if (kd == USBKEY_LEFT) { if (X > 0) X -= mov; }
+              if (kd == USBKEY_DOWN) { if (Y < (28080 - H)) Y += mov; }
+              if (kd == USBKEY_RIGHT) { if (X < (49920 - W)) X += mov; }
             }
           }
           for (int k = 0; k < 6; k++) { }
