@@ -697,7 +697,7 @@ int main(int argc, char *argv[]) {
         }
         if (HiD_type[h] == 'm') {
           R = read(fd, &M, 4);
-          if (R != 8) EFAIL("read mouse");
+          if (R != 4) EFAIL("read mouse");
         }
       }
     }
