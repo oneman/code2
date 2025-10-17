@@ -72,73 +72,136 @@ void pageflip(int fd, u32 frame, u32 sec, u32 usec, void *data) {
   }
 }
 
+#define USBKEY_LCTRL  0x01 /* controL*/
+#define USBKEY_LSHIFT 0x02 /* Shift */
+#define USBKEY_LALT   0x04 /* Alt */
+#define USBKEY_LMETA  0x08 /* Meta */
+#define USBKEY_RCTRL  0x10 /* contRol*/
+#define USBKEY_RSHIFT 0x20 /* shifT */
+#define USBKEY_RALT   0x40 /* alT */
+#define USBKEY_RMETA  0x80 /* metA */
+#define USBKEY_A 0x04 /* a A */
+#define USBKEY_B 0x05 /* b B */
+#define USBKEY_C 0x06 /* c C */
+#define USBKEY_D 0x07 /* d D */
+#define USBKEY_E 0x08 /* e E */
+#define USBKEY_F 0x09 /* f F */
+#define USBKEY_G 0x0a /* g G */
+#define USBKEY_H 0x0b /* h H */
+#define USBKEY_I 0x0c /* i I */
+#define USBKEY_J 0x0d /* j J */
+#define USBKEY_K 0x0e /* k K */
+#define USBKEY_L 0x0f /* l L */
+#define USBKEY_M 0x10 /* m M */
+#define USBKEY_N 0x11 /* n N */
+#define USBKEY_O 0x12 /* o O */
+#define USBKEY_P 0x13 /* p P */
+#define USBKEY_Q 0x14 /* q Q */
+#define USBKEY_R 0x15 /* r R */
+#define USBKEY_S 0x16 /* s S */
+#define USBKEY_T 0x17 /* t T */
+#define USBKEY_U 0x18 /* u U */
+#define USBKEY_V 0x19 /* v V */
+#define USBKEY_W 0x1a /* w W */
+#define USBKEY_X 0x1b /* x X */
+#define USBKEY_Y 0x1c /* y Y */
+#define USBKEY_Z 0x1d /* z Z */
+#define USBKEY_1 0x1e /* 1 ! */
+#define USBKEY_2 0x1f /* 2 @ */
+#define USBKEY_3 0x20 /* 3 # */
+#define USBKEY_4 0x21 /* 4 $ */
+#define USBKEY_5 0x22 /* 5 % */
+#define USBKEY_6 0x23 /* 6 ^ */
+#define USBKEY_7 0x24 /* 7 & */
+#define USBKEY_8 0x25 /* 8 * */
+#define USBKEY_9 0x26 /* 9 ( */
+#define USBKEY_0 0x27 /* 0 ) */
+#define USBKEY_ENTER 0x28 /* Enter */
+#define USBKEY_ESC 0x29 /* Esc */
+#define USBKEY_BACKSPACE 0x2a /* Backspace */
+#define USBKEY_TAB 0x2b /* Tab */
+#define USBKEY_SPACE 0x2c /* Spacebar */
+#define USBKEY_MINUS 0x2d /* -_ */
+#define USBKEY_EQUAL 0x2e /* =+ */
+#define USBKEY_LEFTBRACE 0x2f /* [{ */
+#define USBKEY_RIGHTBRACE 0x30 /*  } */
+#define USBKEY_BACKSLASH 0x31 /* \| */
+#define USBKEY_SEMICOLON 0x33 /* ;: */
+#define USBKEY_APOSTROPHE 0x34 /* '" */
+#define USBKEY_GRAVE 0x35 /* `~ */
+#define USBKEY_COMMA 0x36 /* ,< */
+#define USBKEY_DOT 0x37 /* .> */
+#define USBKEY_SLASH 0x38 /* /? */
+#define USBKEY_CAPSLOCK 0x39 /*  CapsLock */
+#define USBKEY_F1 0x3a /* F1 */
+#define USBKEY_F2 0x3b /* F2 */
+#define USBKEY_F3 0x3c /* F3 */
+#define USBKEY_F4 0x3d /* F4 */
+#define USBKEY_F5 0x3e /* F5 */
+#define USBKEY_F6 0x3f /* F6 */
+#define USBKEY_F7 0x40 /* F7 */
+#define USBKEY_F8 0x41 /* F8 */
+#define USBKEY_F9 0x42 /* F9 */
+#define USBKEY_F10 0x43 /* F10 */
+#define USBKEY_F11 0x44 /* F11 */
+#define USBKEY_F12 0x45 /* F12 */
+#define USBKEY_SYSRQ 0x46 /* PrintScreen */
+#define USBKEY_SCROLLLOCK 0x47 /* ScrollLock */
+#define USBKEY_PAUSE 0x48 /* Pause */
+#define USBKEY_INSERT 0x49 /* Insert */
+#define USBKEY_HOME 0x4a /* Home */
+#define USBKEY_PAGEUP 0x4b /* PageUp */
+#define USBKEY_DELETE 0x4c /* Delete */
+#define USBKEY_END 0x4d /* End */
+#define USBKEY_PAGEDOWN 0x4e /* PageDown */
+#define USBKEY_RIGHT 0x4f /* Right */
+#define USBKEY_LEFT 0x50 /* Left */
+#define USBKEY_DOWN 0x51 /* Down */
+#define USBKEY_UP 0x52 /* Up */
+#define USBKEY_NUMLOCK 0x53 /* NumLock */
+#define USBKEY_KPSLASH 0x54 /* / */
+#define USBKEY_KPASTERISK 0x55 /* * */
+#define USBKEY_KPMINUS 0x56 /* - */
+#define USBKEY_KPPLUS 0x57 /* + */
+#define USBKEY_KPENTER 0x58 /* Enter */
+#define USBKEY_KP1 0x59 /* 1 End */
+#define USBKEY_KP2 0x5a /* 2 Down */
+#define USBKEY_KP3 0x5b /* 3 PageDn */
+#define USBKEY_KP4 0x5c /* 4 Left */
+#define USBKEY_KP5 0x5d /* 5 */
+#define USBKEY_KP6 0x5e /* 6 Right */
+#define USBKEY_KP7 0x5f /* 7 Home */
+#define USBKEY_KP8 0x60 /* 8 Up */
+#define USBKEY_KP9 0x61 /* 9 PageUp */
+#define USBKEY_KP0 0x62 /* 0 Insert */
+#define USBKEY_KPDOT 0x63 /* . Delete */
+#define USBKEY_KPEQUAL 0x67 /* = */
+
 char *KT[] = {
-  "", "", "", "",
+  "",
+  "",
+  "",
+  "",
   "aA", "bB", "cC", "dD", "eE", "fF", "gG", "hH", "iI", "jJ", "kK", "lL", "mM",
   "nN", "oO", "pP", "qQ", "rR", "sS", "tT", "uU", "vV", "wW", "xX", "yY", "zZ",
   "1!", "2@", "3#", "4$", "5%", "6^", "7&", "8*", "9(", "0)",
-  "Enter", "Escape", "Backspace", "Tab",
-  "  ", "-_", "=+", "[{", "]}", "\\|", "", ";:", "'\"", "`~", ",<", ".>", "/?",
+  "Enter", "Escape", "Backspace", "Tab", " ",
+  "-_", "=+", "[{", "]}", "\\|",
+  "",
+  ";:", "'\"", "`~", ",<", ".>", "/?",
   "CapsLock",
   "F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11", "F12",
   "Print", "ScrollLock", "Pause",
   "Insert", "Home", "PageUp", "Delete", "End", "PageDown",
   "Right", "Left", "Down", "Up",
-  "NumLock", "/", "*", "-", "+", "Enter",
-  "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", ".", "", "Menu"
+  "NumLock",
+  "/", "*", "-", "+",
+  "KPEnter",
+  "1", "2", "3", "4", "5", "6", "7", "8", "9", "0",
+  ".",
+  "",
+  "Menu"
 };
-
-int textkey(char k) {
-  if (!k) return 0;
-  if (k > 3) {
-    if (k < 40) return 1;
-    if ((k > 44) && (k < 57)) return 1;
-  }
-  return 0; 
-}
-
-void printmod(char *k) {
-  int p = 0;
-  static char out[64];
-  mset(out, 0, sizeof(out));
-  if (k[1] != 0) {
-    printf("keyboard scan error");
-    exit(1);
-  }
-  if ((k[0] & 0b00000001) || (k[0] & 0b00010000)) {
-    p += snprintf(out + p, sizeof(out) - p, "Control");
-  }
-  if ((k[0] & 0b00000010) || (k[0] & 0b00100000)) {
-    p += snprintf(out + p, sizeof(out) - p, "Shift");
-  }
-  if ((k[0] & 0b00000100) || (k[0] & 0b01000000)) {
-    p += snprintf(out + p, sizeof(out) - p, "Alt");
-  }
-  if ((k[0] & 0b00001000) || (k[0] & 0b10000000)) {
-    p += snprintf(out + p, sizeof(out) - p, "Meta");
-  }
-  if (p) printf("%*s\n", p, out);
-}
-
-int controling(char k) {
-  if ((k & 0b00000001) || (k & 0b00010000)) return 1;
-  return 0;
-}
-
-int shifting(char k) {
-  if ((k & 0b00000010) || (k & 0b00100000)) return 1;
-  return 0;
-}
-
-int alting(char k) {
-  if ((k & 0b00000100) || (k & 0b01000000)) return 1;
-  return 0;
-}
-
-int metaing(char k) {
-  if ((k & 0b00001000) || (k & 0b10000000)) return 1;
-  return 0;
-}
 
 int scan_xdigit(char c) {
   if ((c == 'A') || (c == 'a')) return 0x0A;
@@ -518,9 +581,9 @@ int main(int argc, char *argv[]) {
     for (int k = 2; k < 8; k++) {
       if (K[k] == 0x3d) dctx.complete = 1;
     }
-    X += 1920;
+    /*X += 1920;
     if (X == 1920 * 26) { X = 0; Y += 1080; }
-    if (Y == 1080 * 26) { Y = 0; }
+    if (Y == 1080 * 26) { Y = 0; }*/
     R = epoll_wait(PD, &ev, 1, 2601);
     int fd = ev.data.fd;
     if (R < 0) EFAIL("epoll_wait");
@@ -620,9 +683,17 @@ int main(int argc, char *argv[]) {
         if (HiD_type[h] == 'k') {
           R = read(fd, &K, 8);
           if (R != 8) EFAIL("read keyboard");
-          for (int k = 0; k < 6; k++) {
-            int kd = K[2 + k];
+          if (((K[0] & 0b00000001) || (K[0] & 0b00010000)) /* ctrl */
+           && ((K[0] & 0b00000100) || (K[0] & 0b01000000))) /* alt */ {
+            for (int k = 0; k < 6; k++) {
+              int kd = K[2 + k];
+              if (kd == USBKEY_UP) Y--;
+              if (kd == USBKEY_DOWN) Y++;
+              if (kd == USBKEY_LEFT) X--;
+              if (kd == USBKEY_RIGHT) X++;
+            }
           }
+          for (int k = 0; k < 6; k++) { }
         }
         if (HiD_type[h] == 'm') {
           R = read(fd, &M, 4);
