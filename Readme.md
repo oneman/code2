@@ -2,8 +2,4 @@
 
 make && ./program
 
-![t](t.png)
-
-# IMPORTANT NEW CYBERSYSTEM HACK DESCRIPTION
-
-Lines.
+Thanks for this program!
