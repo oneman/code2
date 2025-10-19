@@ -1,5 +1,7 @@
 #include "header.h"
 
+int CX = 0;
+int CY = 0;
 u8 K[8] = {0,0,0,0,0,0,0,0};
 u8 M[4] = {0,0,0,0};
 u8 *m = 0;
@@ -20,6 +22,13 @@ void draw(void) {
       P[(y * W * 4) + (x * 4) + 0] = m[pxy + 0];
       P[(y * W * 4) + (x * 4) + 1] = m[pxy + 1];
       P[(y * W * 4) + (x * 4) + 2] = m[pxy + 2];
+      if ((x >= CX) && (y >= CY)) {
+        if ((x <= (CX + 10)) && (y <= (CY + 12))) {
+          P[(y * W * 4) + (x * 4) + 0] = 255;
+          P[(y * W * 4) + (x * 4) + 1] = 0;
+          P[(y * W * 4) + (x * 4) + 2] = 0;
+        }
+      }
     }
   }
 }
@@ -66,7 +75,7 @@ void pageflip(int fd, u32 frame, u32 sec, u32 usec, void *data) {
     gettimeofday(&end, NULL);
     t = end.tv_sec + end.tv_usec * 1e-6
      - (context->start.tv_sec + context->start.tv_usec * 1e-6);
-    printf("freq: %.02fHz\n", 60 / t);
+    if (t < 59.0f) printf("freq: %.02fHz\n", 60 / t);
     context->swap_count = 0;
     context->start = end;
   }
@@ -275,11 +284,6 @@ int main(int argc, char *argv[]) {
   sigfillset(&mask);
   R = sigprocmask(SIG_BLOCK, &mask, NULL);
   if (R) EFAIL("sigprocmask");
-  struct termios old_tio, new_tio;
-  tcgetattr(STDIN_FILENO, &old_tio);
-  new_tio = old_tio;
-  new_tio.c_lflag &= (~ICANON & ~ECHO);
-  tcsetattr(STDIN_FILENO, TCSANOW, &new_tio);
   int SD = signalfd(-1, &mask, SFD_NONBLOCK | SFD_CLOEXEC);
   int MD = memfd_create("pixmap-framebuffer", MFD_CLOEXEC);
   int PD = epoll_create1(EPOLL_CLOEXEC);
@@ -392,9 +396,6 @@ int main(int argc, char *argv[]) {
   R = snprintf(L, 80, "* loading %s", ctime(&T));
   write(1, L, R);
   for (int i = 0; i < 676; i++) {
-    X += 1920;
-    if (X == 1920 * 26) { X = 0; Y += 1080; }
-    if (Y == 1080 * 26) { Y = 0; }
     char c1 = 96 + 1 + (i / 26);
     char c2 = 96 + 1 + (i % 26);
     char filename[256];
@@ -424,9 +425,13 @@ int main(int argc, char *argv[]) {
     for (int y = 0; y < 1080; y++) {
       for (int x = 0; x < 1920; x++) {
         u32 pxy = 0;
-        pxy += Y * 1920 * 26 * 3;
+        if (i / 26) {
+          pxy += 1920 * 1080 * 3 * 26 * (i / 26);
+        }
+        if (i % 26) {
+          pxy += 1920 * 3 * (i % 26);
+        }
         pxy += y * 1920 * 26 * 3;
-        pxy += X * 3;
         pxy += x * 3;
         m[pxy] = dat[(y * 1920 * 4) + (x * 4)];
         m[pxy + 1] = dat[(y * 1920 * 4) + (x * 4) + 1];
@@ -459,9 +464,9 @@ int main(int argc, char *argv[]) {
     } else { EFAIL("get a null connector pointer"); }
     if (i == DRES->count_connectors) EFAIL("No active connector found");
   }
-  drmModeModeInfo M = DCON->modes[0];
-  W = M.hdisplay;
-  H = M.vdisplay;
+  drmModeModeInfo DM = DCON->modes[0];
+  W = DM.hdisplay;
+  H = DM.vdisplay;
   T = time(0);
   printf("%d x %d\n%s", W, H, ctime(&T));
   drmModeEncoder *DENC = NULL;
@@ -499,7 +504,8 @@ int main(int argc, char *argv[]) {
   mset(&crtc, 0, sizeof(crtc));
   crtc = drmModeGetCrtc(DD, DENC->crtc_id);
   if (!crtc) EFAIL("drmModeGetCrtc");
-  R = drmModeSetCrtc(DD, DENC->crtc_id, fb_id, 0, 0, &DCON->connector_id, 1, &M);
+  R = drmModeSetCrtc(DD, DENC->crtc_id, fb_id, 0, 0, &DCON->connector_id, 1,
+   &DM);
   if (R) EFAIL("drmModeSetCrtc failed");
 
   struct drm_mode_create_dumb cd2_arg;
@@ -688,11 +694,11 @@ int main(int argc, char *argv[]) {
             for (int k = 0; k < 6; k++) {
               int kd = K[2 + k];
               int mov = 1;
-              if ((K[0] & 0b00000010) || (K[0] & 0b00100000)) { mov = 26; }
-              if (kd == USBKEY_UP) { if (Y > 0) Y -= mov; }
-              if (kd == USBKEY_LEFT) { if (X > 0) X -= mov; }
-              if (kd == USBKEY_DOWN) { if (Y < (28080 - H)) Y += mov; }
-              if (kd == USBKEY_RIGHT) { if (X < (49920 - W)) X += mov; }
+              if ((K[0] & 0b00000010) || (K[0] & 0b00100000)) { mov = 260; }
+              if (kd == USBKEY_UP) { if ((Y - mov) >= 0) Y -= mov; }
+              if (kd == USBKEY_LEFT) { if ((X - mov) >= 0) X -= mov; }
+              if (kd == USBKEY_DOWN) { if ((Y + mov ) <= (28080 - H)) Y += mov; }
+              if (kd == USBKEY_RIGHT) { if ((X + mov) <= (49920 - W)) X += mov; }
             }
           }
           for (int k = 0; k < 6; k++) { }
@@ -700,6 +706,10 @@ int main(int argc, char *argv[]) {
         if (HiD_type[h] == 'm') {
           R = read(fd, &M, 4);
           if (R != 4) EFAIL("read mouse");
+          int m = M[0];
+          if (m != 0) CX += m;
+          m = M[1];
+          if (m != 0) CY += m;
         }
       }
     }
@@ -707,8 +717,6 @@ int main(int argc, char *argv[]) {
       R = drmHandleEvent(DD, &evctx);
     }
   }
-  /* ok */
-  tcsetattr(STDIN_FILENO, TCSANOW, &old_tio);
   R = drmModeSetCrtc(DD, crtc->crtc_id, crtc->buffer_id,
    crtc->x, crtc->y, &DCON->connector_id, 1, &crtc->mode);
   if (R) EFAIL("drmModeSetCrtc() restore original crtc failed");
