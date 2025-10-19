@@ -12,6 +12,11 @@ int H = 0;
 u8 *P = 0;
 
 void draw(void) {
+  static int pulse = 0;
+  static int pulsemod = 1;
+  pulse += pulsemod;
+  if (pulse == 0) pulsemod = 1;
+  if (pulse == 60) pulsemod = -1;
   for (int y = 0; y < H; y++) {
     for (int x = 0; x < W; x++) {
       u32 pxy = 0;
@@ -24,9 +29,9 @@ void draw(void) {
       P[(y * W * 4) + (x * 4) + 2] = m[pxy + 2];
       if ((x >= CX) && (y >= CY)) {
         if ((x <= (CX + 10)) && (y <= (CY + 12))) {
-          P[(y * W * 4) + (x * 4) + 0] = 255;
+          P[(y * W * 4) + (x * 4) + 0] = 0;
           P[(y * W * 4) + (x * 4) + 1] = 0;
-          P[(y * W * 4) + (x * 4) + 2] = 0;
+          P[(y * W * 4) + (x * 4) + 2] = 192 + pulse;
         }
       }
     }
@@ -37,7 +42,6 @@ struct dctx {
   u32 fb_id[2];
   u32 current_fb_id;
   int crtid;
-  struct timeval start;
   u64 swap_count;
   u8 *pixmap1;
   u8 *pixmap2;
@@ -53,32 +57,19 @@ static void vblank(int fd, unsigned int frame, unsigned int sec,
 void pageflip(int fd, u32 frame, u32 sec, u32 usec, void *data) {
   struct dctx *context;
   unsigned int new_fb_id;
-  struct timeval end;
-  double t;
   context = (struct dctx *)data;
   if (context->complete == 1) { context->complete = 2; return; }
   if (context->current_fb_id == context->fb_id[0]) {
     new_fb_id = context->fb_id[1];
-    /*mset(context->pixmap2, 255 - context->swap_count, context->pixmap_sz);*/
     P = context->pixmap2;
   } else {
     new_fb_id = context->fb_id[0];
-    /*mset(context->pixmap1, 65 + context->swap_count, context->pixmap_sz);*/
     P = context->pixmap1;
   }
   draw();
   drmModePageFlip(fd, context->crtid, new_fb_id, DRM_MODE_PAGE_FLIP_EVENT,
    context);
   context->current_fb_id = new_fb_id;
-  context->swap_count++;
-  if ((context->swap_count % 60) == 0) {
-    gettimeofday(&end, NULL);
-    t = end.tv_sec + end.tv_usec * 1e-6
-     - (context->start.tv_sec + context->start.tv_usec * 1e-6);
-    if (t < 59.0f) printf("freq: %.02fHz\n", 60 / t);
-    context->swap_count = 0;
-    context->start = end;
-  }
 }
 
 #define USBKEY_LCTRL  0x01 /* controL*/
@@ -537,7 +528,6 @@ int main(int argc, char *argv[]) {
   dctx.crtid = DENC->crtc_id;
   dctx.swap_count = 0;
   dctx.complete = 0;
-  gettimeofday(&dctx.start, NULL);
   int DE = DRM_MODE_PAGE_FLIP_EVENT;
   R = drmModePageFlip(DD, DENC->crtc_id, fb2_id, DE, &dctx);
   if (R) EFAIL("failed to page flip");
@@ -583,13 +573,6 @@ int main(int argc, char *argv[]) {
     }
   }
   for (;;) {
-    if (dctx.complete == 2) break;
-    for (int k = 2; k < 8; k++) {
-      if (K[k] == 0x3d) dctx.complete = 1;
-    }
-    /*X += 1920;
-    if (X == 1920 * 26) { X = 0; Y += 1080; }
-    if (Y == 1080 * 26) { Y = 0; }*/
     R = epoll_wait(PD, &ev, 1, 2601);
     int fd = ev.data.fd;
     if (R < 0) EFAIL("epoll_wait");
@@ -694,6 +677,7 @@ int main(int argc, char *argv[]) {
             for (int k = 0; k < 6; k++) {
               int kd = K[2 + k];
               int mov = 1;
+              if (kd == USBKEY_F4) dctx.complete = 1;
               if ((K[0] & 0b00000010) || (K[0] & 0b00100000)) { mov = 260; }
               if (kd == USBKEY_UP) { if ((Y - mov) >= 0) Y -= mov; }
               if (kd == USBKEY_LEFT) { if ((X - mov) >= 0) X -= mov; }
@@ -716,6 +700,7 @@ int main(int argc, char *argv[]) {
     if (fd == DD) {
       R = drmHandleEvent(DD, &evctx);
     }
+    if (dctx.complete == 2) break;
   }
   R = drmModeSetCrtc(DD, crtc->crtc_id, crtc->buffer_id,
    crtc->x, crtc->y, &DCON->connector_id, 1, &crtc->mode);
