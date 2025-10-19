@@ -185,10 +185,8 @@ char *KT[] = {
   "aA", "bB", "cC", "dD", "eE", "fF", "gG", "hH", "iI", "jJ", "kK", "lL", "mM",
   "nN", "oO", "pP", "qQ", "rR", "sS", "tT", "uU", "vV", "wW", "xX", "yY", "zZ",
   "1!", "2@", "3#", "4$", "5%", "6^", "7&", "8*", "9(", "0)",
-  "Enter", "Escape", "Backspace", "Tab", " ",
-  "-_", "=+", "[{", "]}", "\\|",
-  "",
-  ";:", "'\"", "`~", ",<", ".>", "/?",
+  "Enter", "Escape", "Backspace", "Tab",
+  " ", "-_", "=+", "[{", "]}", "\\|", "", ";:", "'\"", "`~", ",<", ".>", "/?",
   "CapsLock",
   "F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11", "F12",
   "Print", "ScrollLock", "Pause",
@@ -199,8 +197,8 @@ char *KT[] = {
   "KPEnter",
   "1", "2", "3", "4", "5", "6", "7", "8", "9", "0",
   ".",
-  "",
-  "Menu"
+  "",  "",  "",
+  "="
 };
 
 int scan_xdigit(char c) {
@@ -668,33 +666,44 @@ int main(int argc, char *argv[]) {
       }
     }
     for (int h = 0; h < 26; h++) {
-      if (fd == HiD[h]) {
-        if (HiD_type[h] == 'k') {
-          R = read(fd, &K, 8);
-          if (R != 8) EFAIL("read keyboard");
-          if (((K[0] & 0b00000001) || (K[0] & 0b00010000))
-           && ((K[0] & 0b00000100) || (K[0] & 0b01000000))) {
-            for (int k = 0; k < 6; k++) {
-              int kd = K[2 + k];
-              int mov = 1;
-              if (kd == USBKEY_F4) dctx.complete = 1;
-              if ((K[0] & 0b00000010) || (K[0] & 0b00100000)) { mov = 260; }
-              if (kd == USBKEY_UP) { if ((Y - mov) >= 0) Y -= mov; }
-              if (kd == USBKEY_LEFT) { if ((X - mov) >= 0) X -= mov; }
-              if (kd == USBKEY_DOWN) { if ((Y + mov ) <= (28080 - H)) Y += mov; }
-              if (kd == USBKEY_RIGHT) { if ((X + mov) <= (49920 - W)) X += mov; }
-            }
+      if (fd != HiD[h]) continue;
+      if (HiD_type[h] == 'k') {
+        R = read(fd, &K, 8);
+        if (R != 8) EFAIL("read keyboard");
+        for (int k = 0; k < 6; k++) {
+          int kd = K[2 + k];
+          if (kd == 0) continue;
+          if (((kd >= USBKEY_A && kd <= USBKEY_0))
+           || (kd >= USBKEY_SPACE && kd <= USBKEY_SLASH)
+           || (kd >= USBKEY_KPSLASH && kd <= USBKEY_KPPLUS)
+           || (kd >= USBKEY_KP1 && kd <= USBKEY_KPEQUAL)) {
+           char keychar = KT[kd][0];
+           if (keychar == 0) continue;
+           if (((K[0] & 0b00000010) || (K[0] & 0b00100000))
+            && (KT[kd][1] != 0)) { keychar = KT[kd][1]; }
           }
-          for (int k = 0; k < 6; k++) { }
+          if ((kd >= USBKEY_ENTER && kd <= USBKEY_TAB)
+           || (kd >= USBKEY_CAPSLOCK && kd <= USBKEY_NUMLOCK)
+           || (kd == USBKEY_KPENTER)) {
+            int mov = 1;
+            if ((K[0] & 0b00000010) || (K[0] & 0b00100000)) { mov = 260; }
+            if (kd == USBKEY_F4) dctx.complete = 1;
+            if (((K[0] & 0b00000001) || (K[0] & 0b00010000))
+             && ((K[0] & 0b00000100) || (K[0] & 0b01000000))) { }
+            if (kd == USBKEY_UP) { if ((Y - mov) >= 0) Y -= mov; }
+            if (kd == USBKEY_LEFT) { if ((X - mov) >= 0) X -= mov; }
+            if (kd == USBKEY_DOWN) { if ((Y + mov ) <= (28080 - H)) Y += mov; }
+            if (kd == USBKEY_RIGHT) { if ((X + mov) <= (49920 - W)) X += mov; }
+          }
         }
-        if (HiD_type[h] == 'm') {
-          R = read(fd, &M, 4);
-          if (R != 4) EFAIL("read mouse");
-          int m = M[1];
-          if (m != 0) CX += m;
-          m = M[2];
-          if (m != 0) CY += m;
-        }
+      }
+      if (HiD_type[h] == 'm') {
+        R = read(fd, &M, 4);
+        if (R != 4) EFAIL("read mouse");
+        int m = M[1];
+        if (m != 0) CX += m;
+        m = M[2];
+        if (m != 0) CY += m;
       }
     }
     if (fd == DD) {
