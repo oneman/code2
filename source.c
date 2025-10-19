@@ -3,7 +3,7 @@
 int CX = 0;
 int CY = 0;
 u8 K[8] = {0,0,0,0,0,0,0,0};
-u8 M[4] = {0,0,0,0};
+i8 M[4] = {0,0,0,0};
 u8 *m = 0;
 int X = 49920 - 49920;
 int Y = 28080 - 28080;
@@ -706,9 +706,9 @@ int main(int argc, char *argv[]) {
         if (HiD_type[h] == 'm') {
           R = read(fd, &M, 4);
           if (R != 4) EFAIL("read mouse");
-          int m = M[0];
+          int m = M[1];
           if (m != 0) CX += m;
-          m = M[1];
+          m = M[2];
           if (m != 0) CY += m;
         }
       }
