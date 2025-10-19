@@ -3,7 +3,6 @@
 int CX = 0;
 int CY = 0;
 u8 K[8] = {0,0,0,0,0,0,0,0};
-i8 M[4] = {0,0,0,0};
 u8 *m = 0;
 int X = 49920 - 49920;
 int Y = 28080 - 28080;
@@ -342,8 +341,6 @@ int main(int argc, char *argv[]) {
   for (int i = 0; i < 26; i++) {
     HiD[i] = 0;
     HiD_type[i] = 0;
-  }
-  for (int i = 0; i < 26; i++) {
     struct hidraw_report_descriptor rpt;
     struct hidraw_devinfo hinfo;
     mset(&rpt, 0, sizeof(rpt));
@@ -414,14 +411,10 @@ int main(int argc, char *argv[]) {
     for (int y = 0; y < 1080; y++) {
       for (int x = 0; x < 1920; x++) {
         u32 pxy = 0;
-        if (i / 26) {
-          pxy += 1920 * 1080 * 3 * 26 * (i / 26);
-        }
-        if (i % 26) {
-          pxy += 1920 * 3 * (i % 26);
-        }
-        pxy += y * 1920 * 26 * 3;
         pxy += x * 3;
+        pxy += y * 1920 * 26 * 3;
+        if (i / 26) pxy += 1920 * 1080 * 3 * 26 * (i / 26);
+        if (i % 26) pxy += 1920 * 3 * (i % 26);
         m[pxy] = dat[(y * 1920 * 4) + (x * 4)];
         m[pxy + 1] = dat[(y * 1920 * 4) + (x * 4) + 1];
         m[pxy + 2] = dat[(y * 1920 * 4) + (x * 4) + 2];
@@ -698,12 +691,11 @@ int main(int argc, char *argv[]) {
         }
       }
       if (HiD_type[h] == 'm') {
+        i8 M[4] = {0,0,0,0};
         R = read(fd, &M, 4);
         if (R != 4) EFAIL("read mouse");
-        int m = M[1];
-        if (m != 0) CX += m;
-        m = M[2];
-        if (m != 0) CY += m;
+        CX += M[1];
+        CY += M[2];
       }
     }
     if (fd == DD) {
