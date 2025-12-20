@@ -1,14 +1,108 @@
 #include "header.h"
 
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <xcb/xcb.h>
+#include <xcb/xcb_image.h>
+/*
+void draw_image(PNGImage img) {
+  xcb_img = xcb_image_create_native(
+        conn,               // XCB connection
+        img.width,          // Width
+        img.height,         // Height  
+        XCB_IMAGE_FORMAT_Z_PIXMAP,  // Format (matches window depth)
+        screen->root_depth, // Depth (use screen's depth)
+        img.data,           // Pixel data
+        img.stride * img.height,  // Size of data (bytes)
+        img.data          // Stride (bytes per row)
+    );
+  if (!xcb_img) {
+    fprintf(stderr, "Error: Failed to create XCB image\n"); return;
+  }
+  xcb_gcontext_t black = xcb_generate_id(conn);
+  uint32_t mask = XCB_GC_FOREGROUND;
+  uint32_t value[] = { screen->black_pixel };
+  xcb_create_gc(conn, black, window, mask, value);
+  xcb_image_put(conn, window, black, xcb_img, 0, 0, 0);
+  xcb_flush(conn);
+}*/
+/*
+int main(int argc, char *argv[]) {
+  if (argc != 2) { fprintf(stderr, "Usage: %s <png_file>\n", argv[0]);exit(1);}
+  PNGImage img = load_png(argv[1]);
+  if (!img.data) { return 1; }
+  xcb_connection_t *xc;  
+  xcb_screen_t *xscr;  
+  xcb_window_t xwin;  
+  xcb_image_t *ximg;
+  xc = xcb_connect(NULL, NULL);
+  if (xcb_connection_has_error(conn)) {
+    fprintf(stderr, "Error: Could not connect to X server\n");  
+    exit(EXIT_FAILURE);  
+  }
+  screen = xcb_setup_roots_iterator(xcb_get_setup(conn)).data;
+  window = xcb_generate_id(conn);  
+  uint32_t values[4];
+  values[0] = screen->white_pixel;
+  values[1] = XCB_EVENT_MASK_EXPOSURE | XCB_EVENT_MASK_BUTTON_PRESS | XCB_EVENT_MASK_STRUCTURE_NOTIFY | XCB_EVENT_MASK_BUTTON_RELEASE | XCB_EVENT_MASK_KEY_PRESS | XCB_EVENT_MASK_BUTTON_MOTION;
+    xcb_create_window(
+        conn,
+        XCB_COPY_FROM_PARENT,  // Depth (use screen's depth)
+        window,
+        screen->root,          // Parent window
+        0, 0,                  // X, Y position
+        width, height,         // Width, height
+        10,                    // Border width
+        XCB_WINDOW_CLASS_INPUT_OUTPUT,
+        screen->root_visual,   // Visual (use screen's visual)
+        XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK,
+        values
+    );
+    xcb_map_window(conn, window);
+    xcb_flush(conn);
+    draw_image(img);
+    xcb_generic_event_t *event;
+    int i = 0;
+    while ((event = xcb_wait_for_event(conn))) {
+        i++;
+        switch (event->response_type & ~0x80) {
+            case XCB_MOTION_NOTIFY:
+                            draw_image(img);  
+                    printf("XCB_MOTION_NOTIFY %d\n", i);
+              break;
+            case XCB_EXPOSE:  
+                // Redraw on expose (e.g., window uncovered)  
+                        printf("expose %d\n", i);
+                draw_image(img);  
+                break;  
+            case XCB_CLIENT_MESSAGE:  
+                // Exit on window close (simplified; handle WM_DELETE_WINDOW)  
+                free(img.data);  
+                xcb_disconnect(conn);  
+                exit(EXIT_SUCCESS);
+            default:
+              printf("hrm default\n");
+              break;
+        }
+        free(event);  
+    }
+    xcb_disconnect(conn);  
+    printf("cool\n");
+    return 0;  
+}
+*/
+
 int CX = 0;
 int CY = 0;
 u8 K[8] = {0,0,0,0,0,0,0,0};
 u8 *m = 0;
-int X = 49920 - 49920;
-int Y = 28080 - 28080;
+int X = 0;
+int Y = 0;
 int W = 0;
 int H = 0;
 u8 *P = 0;
+int STRIDE = 1920 * 26 * 3;
 
 void draw(void) {
   static int pulse = 0;
@@ -19,8 +113,8 @@ void draw(void) {
   for (int y = 0; y < H; y++) {
     for (int x = 0; x < W; x++) {
       u32 pxy = 0;
-      pxy += Y * 1920 * 26 * 3;
-      pxy += y * 1920 * 26 * 3;
+      pxy += Y * STRIDE;
+      pxy += y * STRIDE;
       pxy += X * 3;
       pxy += x * 3;
       P[(y * W * 4) + (x * 4) + 0] = m[pxy + 0];
@@ -35,40 +129,6 @@ void draw(void) {
       }
     }
   }
-}
-
-struct dctx {
-  u32 fb_id[2];
-  u32 current_fb_id;
-  int crtid;
-  u64 swap_count;
-  u8 *pixmap1;
-  u8 *pixmap2;
-  int pixmap_sz;
-  int complete;
-};
-
-static void vblank(int fd, unsigned int frame, unsigned int sec,
- unsigned int usec, void *data) {
-  printf("vblank\n");
-}
-
-void pageflip(int fd, u32 frame, u32 sec, u32 usec, void *data) {
-  struct dctx *context;
-  unsigned int new_fb_id;
-  context = (struct dctx *)data;
-  if (context->complete == 1) { context->complete = 2; return; }
-  if (context->current_fb_id == context->fb_id[0]) {
-    new_fb_id = context->fb_id[1];
-    P = context->pixmap2;
-  } else {
-    new_fb_id = context->fb_id[0];
-    P = context->pixmap1;
-  }
-  draw();
-  drmModePageFlip(fd, context->crtid, new_fb_id, DRM_MODE_PAGE_FLIP_EVENT,
-   context);
-  context->current_fb_id = new_fb_id;
 }
 
 #define USBKEY_LCTRL  0x01 /* controL*/
@@ -284,58 +344,10 @@ int main(int argc, char *argv[]) {
   if (WD == -1) EFAIL("inotify_add_watch /dev IN_CREATE");
   struct inotify_event INEV;
   R = ftruncate(MD, 4205260800);
-  if (R == -1) EFAIL("ftruncate 4205260800");
+  if (R == -1) EFAIL("ftruncate");
   m = mmap(NULL, 4205260800, PROT_READ | PROT_WRITE, MAP_SHARED, MD, 0);
-  if (!m) EFAIL("mmap 4205260800");
-  R = mlock(m, 4205260800);
-  if (R == -1) EFAIL("mlock 4205260800");
-  mset(m, 'K', 4205260800);
-  write(1, "memgood\n", 8);
-  /*
-  pw_init(&argc, &argv);
-  char *pw_hdr_ver = pw_get_headers_version();
-  const char *pw_lib_ver = pw_get_library_version();
-  if (strsz(pw_hdr_ver) != strsz(pw_lib_ver)) return 42;
-  if (mcmp(pw_hdr_ver, pw_lib_ver, strsz(pw_lib_ver))) return 666;
-  printf("Pipewire %s\n", pw_hdr_ver); */
-  /* void mp_set_memory_functions
-      void *(*alloc_func_ptr) (size_t),
-      void *(*realloc_func_ptr) (void *, size_t, size_t),
-      void (*free_func_ptr) (void *, size_t))
-  */
-  mpz_t a, b, c, d, r, r2;
-  mpz_init_set_ui(b, 0);
-  mpz_init_set_ui(c, 0);
-  mpz_init_set_ui(r, 0);
-  mpz_init_set_str(a, "4205260800", 10);
-  mpz_init_set_str(d, "4205260799", 10);
-  mpz_init_set_str(r2, "18446744073709551616", 10);
-  mpz_mod(r, d, r2);
-  /*gmp_printf("%Zd\n", r);*/
-  mpz_t e;
-  mpz_init(e);
-  mpz_fac_ui(e, 26);
-  /*gmp_printf("26!\n%Zd\n", e);*/
-  mpz_t f;
-  mpz_init(f);
-  mpz_fac_ui(f, 126);
-  /*gmp_printf("126!\n%Zd\n", f);*/
-  mpz_t g;
-  mpz_init(g);
-  mpz_fac_ui(g, 209);
-  /*gmp_printf("209!\n%Zd\n", g);*/
-  mpz_clear(a);
-  mpz_clear(b);
-  mpz_clear(c);
-  mpz_clear(d);
-  mpz_clear(r);
-  mpz_clear(r2);
-  mpz_clear(e);
-  mpz_clear(f);
-  mpz_clear(g);
-  T = time(0);
-  R = snprintf(L, 80, "* hid scan %s", ctime(&T));
-  write(1, L, R);
+  if (m) R = mlock(m, 4205260800);
+  if ((!m) || (R == -1)) EFAIL("mmapmlock");
   int HiD[26];
   char HiD_type[26];
   for (int i = 0; i < 26; i++) {
@@ -412,7 +424,7 @@ int main(int argc, char *argv[]) {
       for (int x = 0; x < 1920; x++) {
         u32 pxy = 0;
         pxy += x * 3;
-        pxy += y * 1920 * 26 * 3;
+        pxy += y * STRIDE; /* 1920 * 26 * 3; */
         if (i / 26) pxy += 1920 * 1080 * 3 * 26 * (i / 26);
         if (i % 26) pxy += 1920 * 3 * (i % 26);
         m[pxy] = dat[(y * 1920 * 4) + (x * 4)];
@@ -422,112 +434,11 @@ int main(int argc, char *argv[]) {
     }
     cairo_surface_destroy(cst);
   }
-  u32 fb_id = 0;
-  u32 fb2_id = 0;
-  int DD = open("/dev/dri/card0", O_RDWR);
-  if (DD < 0) EFAIL("drmOpen failed");
-  drmVersionPtr DV = drmGetVersion(DD);
-  printf("opened device `%s` on driver `%s` (version %d.%d.%d at %s)\n",
-   DV->desc, DV->name, DV->version_major, DV->version_minor,
-   DV->version_patchlevel, DV->date);
-  drmFreeVersion(DV);
-  drmModeRes *DRES = drmModeGetResources(DD);
-  if (DRES == NULL) EFAIL("drmModeGetResources");
-  drmModeConnector *DCON = NULL;
-  for (int i = 0; i < DRES->count_connectors; ++i) {
-    DCON = drmModeGetConnector(DD, DRES->connectors[i]);
-    if (DCON != NULL) {
-      printf("connector %d found\n", DCON->connector_id);
-      if (DCON->connection == DRM_MODE_CONNECTED
-       && DCON->count_modes > 0) {
-        break;
-      }
-      drmModeFreeConnector(DCON);
-    } else { EFAIL("get a null connector pointer"); }
-    if (i == DRES->count_connectors) EFAIL("No active connector found");
-  }
-  drmModeModeInfo DM = DCON->modes[0];
-  W = DM.hdisplay;
-  H = DM.vdisplay;
-  T = time(0);
-  printf("%d x %d\n%s", W, H, ctime(&T));
-  drmModeEncoder *DENC = NULL;
-  for (int i = 0; i < DRES->count_encoders; ++i) {
-    DENC = drmModeGetEncoder(DD, DRES->encoders[i]);
-    if (DENC != NULL) {
-      printf("encoder %d found\n", DENC->encoder_id);
-      if (DENC->encoder_id == DCON->encoder_id) {
-        break;
-      }
-      drmModeFreeEncoder(DENC);
-    } else {
-      EFAIL("get a null encoder pointer");
-    }
-  }
-  struct drm_mode_create_dumb cd_arg;
-  mset(&cd_arg, 0, sizeof(cd_arg));
-  cd_arg.bpp = 32;
-  cd_arg.width = W;
-  cd_arg.height = H;
-  R = ioctl(DD, DRM_IOCTL_MODE_CREATE_DUMB, &cd_arg);
-  if (R) EFAIL("DRM_IOCTL_MODE_CREATE_DUMB");
-  struct drm_mode_map_dumb md_arg;
-  mset(&md_arg, 0, sizeof(md_arg));
-  md_arg.handle = cd_arg.handle;
-  R = ioctl(DD, DRM_IOCTL_MODE_MAP_DUMB, &md_arg);
-  if (R) EFAIL("DRM_IOCTL_MODE_MAP_DUMB");
-  u8 *pixmap1 = mmap(0, cd_arg.size, PROT_READ | PROT_WRITE, MAP_SHARED, DD,
-                       md_arg.offset);
-  mset(pixmap1, 0xFF, cd_arg.pitch * H);
-  R = drmModeAddFB(DD, W, H, 24, 32, cd_arg.pitch, cd_arg.handle, &fb_id);
-  if (R) EFAIL("drmModeAddFB");
+  
+  int DD = 0;//xcb_get_file_descriptor(xc);
+  
+  
 
-  drmModeCrtcPtr crtc;
-  mset(&crtc, 0, sizeof(crtc));
-  crtc = drmModeGetCrtc(DD, DENC->crtc_id);
-  if (!crtc) EFAIL("drmModeGetCrtc");
-  R = drmModeSetCrtc(DD, DENC->crtc_id, fb_id, 0, 0, &DCON->connector_id, 1,
-   &DM);
-  if (R) EFAIL("drmModeSetCrtc failed");
-
-  struct drm_mode_create_dumb cd2_arg;
-  mset(&cd2_arg, 0, sizeof(cd2_arg));
-  cd2_arg.bpp = 32;
-  cd2_arg.width = W;
-  cd2_arg.height = H;
-  R = ioctl(DD, DRM_IOCTL_MODE_CREATE_DUMB, &cd2_arg);
-  if (R) EFAIL("DRM_IOCTL_MODE_CREATE_DUMB");
-  struct drm_mode_map_dumb md2_arg;
-  mset(&md2_arg, 0, sizeof(md2_arg));
-  md2_arg.handle = cd2_arg.handle;
-  R = ioctl(DD, DRM_IOCTL_MODE_MAP_DUMB, &md2_arg);
-  if (R) EFAIL("DRM_IOCTL_MODE_MAP_DUMB");
-  u8 *pixmap2 = mmap(0, cd2_arg.size, PROT_READ | PROT_WRITE, MAP_SHARED, DD,
-                          md2_arg.offset);
-  mset(pixmap2, 0xFF, cd2_arg.pitch * H);
-  R = drmModeAddFB(DD, W, H, 24, 32, cd2_arg.pitch, cd2_arg.handle, &fb2_id);
-  if (R) EFAIL("drmModeAddFB failed");
-
-  struct dctx dctx;
-  mset(&dctx, 0, sizeof dctx);
-  dctx.pixmap1 = pixmap1;
-  dctx.pixmap2 = pixmap2;
-  dctx.pixmap_sz = H * cd2_arg.pitch;
-  dctx.fb_id[0] = fb_id;
-  dctx.fb_id[1] = fb2_id;
-  dctx.current_fb_id = fb_id;
-  dctx.crtid = DENC->crtc_id;
-  dctx.swap_count = 0;
-  dctx.complete = 0;
-  int DE = DRM_MODE_PAGE_FLIP_EVENT;
-  R = drmModePageFlip(DD, DENC->crtc_id, fb2_id, DE, &dctx);
-  if (R) EFAIL("failed to page flip");
-
-  drmEventContext evctx;
-  mset(&evctx, 0, sizeof evctx);
-  evctx.version = DRM_EVENT_CONTEXT_VERSION;
-  evctx.vblank_handler = vblank;
-  evctx.page_flip_handler = pageflip;
 
   struct epoll_event ev;
   ev.events = EPOLLIN;
@@ -680,7 +591,7 @@ int main(int argc, char *argv[]) {
            || (kd == USBKEY_KPENTER)) {
             int mov = 1;
             if ((K[0] & 0b00000010) || (K[0] & 0b00100000)) { mov = 260; }
-            if (kd == USBKEY_F4) dctx.complete = 1;
+            /*if (kd == USBKEY_F4) dctx.complete = 1;*/
             if (((K[0] & 0b00000001) || (K[0] & 0b00010000))
              && ((K[0] & 0b00000100) || (K[0] & 0b01000000))) { }
             if (kd == USBKEY_UP) { if ((Y - mov) >= 0) Y -= mov; }
@@ -699,21 +610,12 @@ int main(int argc, char *argv[]) {
       }
     }
     if (fd == DD) {
-      R = drmHandleEvent(DD, &evctx);
+      /*R = xcb____Event(DD, &evctx); */
     }
-    if (dctx.complete == 2) break;
   }
-  R = drmModeSetCrtc(DD, crtc->crtc_id, crtc->buffer_id,
-   crtc->x, crtc->y, &DCON->connector_id, 1, &crtc->mode);
-  if (R) EFAIL("drmModeSetCrtc() restore original crtc failed");
-  drmModeRmFB(DD, fb2_id);
-  drmModeRmFB(DD, fb_id);
-  drmModeFreeEncoder(DENC);
-  drmModeFreeConnector(DCON);
-  drmModeFreeResources(DRES);
-  close(DD);
+
+  //close(DD);
   T = time(0);
-  printf("done\n%s\n", ctime(&T));
-  write(1, "OKrad\n", 6);
+  printf("done\n%s\nOKrad\n", ctime(&T));
   exit(0);
 }

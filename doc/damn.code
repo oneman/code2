@@ -1,0 +1,224 @@
+struct dctx {
+  u32 fb_id[2];
+  u32 current_fb_id;
+  int crtid;
+  u64 swap_count;
+  u8 *pixmap1;
+  u8 *pixmap2;
+  int pixmap_sz;
+  int complete;
+};
+
+static void vblank(int fd, unsigned int frame, unsigned int sec,
+ unsigned int usec, void *data) {
+  printf("vblank\n");
+}
+
+void pageflip(int fd, u32 frame, u32 sec, u32 usec, void *data) {
+  struct dctx *context;
+  unsigned int new_fb_id;
+  context = (struct dctx *)data;
+  if (context->complete == 1) { context->complete = 2; return; }
+  if (context->current_fb_id == context->fb_id[0]) {
+    new_fb_id = context->fb_id[1];
+    P = context->pixmap2;
+  } else {
+    new_fb_id = context->fb_id[0];
+    P = context->pixmap1;
+  }
+  draw();
+  drmModePageFlip(fd, context->crtid, new_fb_id, DRM_MODE_PAGE_FLIP_EVENT,
+   context);
+  context->current_fb_id = new_fb_id;
+}
+
+
+  int DD = open("/dev/dri/card0", O_RDWR);
+  u32 fb_id = 0;
+  u32 fb2_id = 0;
+  if (DD < 0) EFAIL("drmOpen failed");
+  drmVersionPtr DV = drmGetVersion(DD);
+  printf("opened device `%s` on driver `%s` (version %d.%d.%d at %s)\n",
+   DV->desc, DV->name, DV->version_major, DV->version_minor,
+   DV->version_patchlevel, DV->date);
+  drmFreeVersion(DV);
+  drmModeRes *DRES = drmModeGetResources(DD);
+  if (DRES == NULL) EFAIL("drmModeGetResources");
+  drmModeConnector *DCON = NULL;
+  for (int i = 0; i < DRES->count_connectors; ++i) {
+    DCON = drmModeGetConnector(DD, DRES->connectors[i]);
+    if (DCON != NULL) {
+      printf("connector %d found\n", DCON->connector_id);
+      if (DCON->connection == DRM_MODE_CONNECTED
+       && DCON->count_modes > 0) {
+        break;
+      }
+      drmModeFreeConnector(DCON);
+    } else { EFAIL("get a null connector pointer"); }
+    if (i == DRES->count_connectors) EFAIL("No active connector found");
+  }
+  drmModeModeInfo DM = DCON->modes[0];
+  W = DM.hdisplay;
+  H = DM.vdisplay;
+  T = time(0);
+  printf("%d x %d\n%s", W, H, ctime(&T));
+  drmModeEncoder *DENC = NULL;
+  for (int i = 0; i < DRES->count_encoders; ++i) {
+    DENC = drmModeGetEncoder(DD, DRES->encoders[i]);
+    if (DENC != NULL) {
+      printf("encoder %d found\n", DENC->encoder_id);
+      if (DENC->encoder_id == DCON->encoder_id) {
+        break;
+      }
+      drmModeFreeEncoder(DENC);
+    } else {
+      EFAIL("get a null encoder pointer");
+    }
+  }
+  struct drm_mode_create_dumb cd_arg;
+  mset(&cd_arg, 0, sizeof(cd_arg));
+  cd_arg.bpp = 32;
+  cd_arg.width = W;
+  cd_arg.height = H;
+  R = ioctl(DD, DRM_IOCTL_MODE_CREATE_DUMB, &cd_arg);
+  if (R) EFAIL("DRM_IOCTL_MODE_CREATE_DUMB");
+  struct drm_mode_map_dumb md_arg;
+  mset(&md_arg, 0, sizeof(md_arg));
+  md_arg.handle = cd_arg.handle;
+  R = ioctl(DD, DRM_IOCTL_MODE_MAP_DUMB, &md_arg);
+  if (R) EFAIL("DRM_IOCTL_MODE_MAP_DUMB");
+  u8 *pixmap1 = mmap(0, cd_arg.size, PROT_READ | PROT_WRITE, MAP_SHARED, DD,
+                       md_arg.offset);
+  mset(pixmap1, 0xFF, cd_arg.pitch * H);
+  R = drmModeAddFB(DD, W, H, 24, 32, cd_arg.pitch, cd_arg.handle, &fb_id);
+  if (R) EFAIL("drmModeAddFB");
+
+  drmModeCrtcPtr crtc;
+  mset(&crtc, 0, sizeof(crtc));
+  crtc = drmModeGetCrtc(DD, DENC->crtc_id);
+  if (!crtc) EFAIL("drmModeGetCrtc");
+  R = drmModeSetCrtc(DD, DENC->crtc_id, fb_id, 0, 0, &DCON->connector_id, 1,
+   &DM);
+  if (R) EFAIL("drmModeSetCrtc failed");
+
+  struct drm_mode_create_dumb cd2_arg;
+  mset(&cd2_arg, 0, sizeof(cd2_arg));
+  cd2_arg.bpp = 32;
+  cd2_arg.width = W;
+  cd2_arg.height = H;
+  R = ioctl(DD, DRM_IOCTL_MODE_CREATE_DUMB, &cd2_arg);
+  if (R) EFAIL("DRM_IOCTL_MODE_CREATE_DUMB");
+  struct drm_mode_map_dumb md2_arg;
+  mset(&md2_arg, 0, sizeof(md2_arg));
+  md2_arg.handle = cd2_arg.handle;
+  R = ioctl(DD, DRM_IOCTL_MODE_MAP_DUMB, &md2_arg);
+  if (R) EFAIL("DRM_IOCTL_MODE_MAP_DUMB");
+  u8 *pixmap2 = mmap(0, cd2_arg.size, PROT_READ | PROT_WRITE, MAP_SHARED, DD,
+                          md2_arg.offset);
+  mset(pixmap2, 0xFF, cd2_arg.pitch * H);
+  R = drmModeAddFB(DD, W, H, 24, 32, cd2_arg.pitch, cd2_arg.handle, &fb2_id);
+  if (R) EFAIL("drmModeAddFB failed");
+
+  struct dctx dctx;
+  mset(&dctx, 0, sizeof dctx);
+  dctx.pixmap1 = pixmap1;
+  dctx.pixmap2 = pixmap2;
+  dctx.pixmap_sz = H * cd2_arg.pitch;
+  dctx.fb_id[0] = fb_id;
+  dctx.fb_id[1] = fb2_id;
+  dctx.current_fb_id = fb_id;
+  dctx.crtid = DENC->crtc_id;
+  dctx.swap_count = 0;
+  dctx.complete = 0;
+  int DE = DRM_MODE_PAGE_FLIP_EVENT;
+  R = drmModePageFlip(DD, DENC->crtc_id, fb2_id, DE, &dctx);
+  if (R) EFAIL("failed to page flip");
+
+  drmEventContext evctx;
+  mset(&evctx, 0, sizeof evctx);
+  evctx.version = DRM_EVENT_CONTEXT_VERSION;
+  evctx.vblank_handler = vblank;
+  evctx.page_flip_handler = pageflip;
+  
+  
+  
+  
+  
+  
+    if (fd == DD) {
+      R = drmHandleEvent(DD, &evctx);
+    }
+    if (dctx.complete == 2) break;
+  }
+  R = drmModeSetCrtc(DD, crtc->crtc_id, crtc->buffer_id,
+   crtc->x, crtc->y, &DCON->connector_id, 1, &crtc->mode);
+  if (R) EFAIL("drmModeSetCrtc() restore original crtc failed");
+  drmModeRmFB(DD, fb2_id);
+  drmModeRmFB(DD, fb_id);
+  drmModeFreeEncoder(DENC);
+  drmModeFreeConnector(DCON);
+  drmModeFreeResources(DRES);
+  close(DD);
+  
+  
+  
+  
+  
+  
+  
+  *****************
+  
+  
+  
+    mset(m, 'K', 4205260800);
+  write(1, "memgood\n", 8);
+  /*
+  pw_init(&argc, &argv);
+  char *pw_hdr_ver = pw_get_headers_version();
+  const char *pw_lib_ver = pw_get_library_version();
+  if (strsz(pw_hdr_ver) != strsz(pw_lib_ver)) return 42;
+  if (mcmp(pw_hdr_ver, pw_lib_ver, strsz(pw_lib_ver))) return 666;
+  printf("Pipewire %s\n", pw_hdr_ver); */
+  /* void mp_set_memory_functions
+      void *(*alloc_func_ptr) (size_t),
+      void *(*realloc_func_ptr) (void *, size_t, size_t),
+      void (*free_func_ptr) (void *, size_t))
+  */
+  mpz_t a, b, c, d, r, r2;
+  mpz_init_set_ui(b, 0);
+  mpz_init_set_ui(c, 0);
+  mpz_init_set_ui(r, 0);
+  mpz_init_set_str(a, "4205260800", 10);
+  mpz_init_set_str(d, "4205260799", 10);
+  mpz_init_set_str(r2, "18446744073709551616", 10);
+  mpz_mod(r, d, r2);
+  /*gmp_printf("%Zd\n", r);*/
+  mpz_t e;
+  mpz_init(e);
+  mpz_fac_ui(e, 26);
+  /*gmp_printf("26!\n%Zd\n", e);*/
+  mpz_t f;
+  mpz_init(f);
+  mpz_fac_ui(f, 126);
+  /*gmp_printf("126!\n%Zd\n", f);*/
+  mpz_t g;
+  mpz_init(g);
+  mpz_fac_ui(g, 209);
+  /*gmp_printf("209!\n%Zd\n", g);*/
+  mpz_clear(a);
+  mpz_clear(b);
+  mpz_clear(c);
+  mpz_clear(d);
+  mpz_clear(r);
+  mpz_clear(r2);
+  mpz_clear(e);
+  mpz_clear(f);
+  mpz_clear(g);
+  T = time(0);
+  R = snprintf(L, 80, "* hid scan %s", ctime(&T));
+  write(1, L, R);
+  
+  
+  
+  
+  

@@ -12,9 +12,6 @@
 #include <signal.h>
 #include <inttypes.h>
 #include <termios.h>
-#include <xf86drm.h>
-#include <xf86drmMode.h>
-
 #include <sys/epoll.h>
 #include <sys/signalfd.h>
 #include <sys/timerfd.h>
@@ -28,18 +25,15 @@
 #include <sys/sysmacros.h>
 #include <sys/socket.h>
 #include <sys/random.h>
-
 #include <linux/types.h>
 #include <linux/input.h>
 #include <linux/hidraw.h>
-
-#include <arpa/inet.h>
-#include <net/if_packet.h>
 #include <linux/if_ether.h>
+#include <net/if_packet.h>
+#include <arpa/inet.h>
 
 #include <cairo.h>
 #include <gmp.h>
-#include <pipewire/pipewire.h>
 
 typedef float f32;
 typedef double f64;
@@ -350,5 +344,3 @@ int pxrprint(pxr *pr, pxl *px, int w, int h, char *filename) {
   }
   return 0;
 }
-
-#include "doc/.cnake/text.c"
